@@ -24,6 +24,8 @@ State assumptions only after this inspection. If the repo has stricter rules tha
 
 If the project defines an iteration gate, trigger it through the project's documented entrypoint instead of bypassing it.
 
+This repository also includes an optional Claude Code hook template at `scripts/claude-code-gate.sh`. Use it only when the project wants code-level enforcement instead of prompt-only discipline. Copy it into the target project and tune it through environment variables rather than editing project-specific paths into the script.
+
 Common trigger phrases:
 
 - `开始循环优化：<topic>`

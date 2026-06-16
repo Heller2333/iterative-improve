@@ -37,6 +37,8 @@ git clone https://github.com/Heller2333/iterative-improve.git ~/.codex/skills/it
 git -C ~/.codex/skills/iterative-improve pull
 ```
 
+这会安装 Markdown Skill。可选的 shell gate 脚本也会随仓库一起保留在 `scripts/` 目录。
+
 ### Claude Code
 
 将仓库克隆到 Claude Code skills 目录：
@@ -52,6 +54,8 @@ git clone https://github.com/Heller2333/iterative-improve.git ~/.claude/skills/i
 git -C ~/.claude/skills/iterative-improve pull
 ```
 
+这会安装 Markdown Skill。如果你想用 Claude Code hooks 强制执行流程，见 [可选 Claude Code Gate](#可选-claude-code-gate)。
+
 ### 手动复制
 
 也可以直接复制到你的 Agent 支持的 skills 目录：
@@ -59,6 +63,70 @@ git -C ~/.claude/skills/iterative-improve pull
 ```bash
 cp -R iterative-improve ~/.codex/skills/iterative-improve
 ```
+
+## 可选 Claude Code Gate
+
+这个 Skill 可以只作为 Markdown 指南使用。如果你希望在工具调用层面强制执行流程，仓库也提供一个通用 Claude Code hook 模板：
+
+```text
+scripts/claude-code-gate.sh
+```
+
+在目标项目中安装：
+
+```bash
+mkdir -p .claude/hooks
+cp ~/.codex/skills/iterative-improve/scripts/claude-code-gate.sh .claude/hooks/iterative-improve-gate.sh
+chmod +x .claude/hooks/iterative-improve-gate.sh
+```
+
+加入项目的 `.claude/settings.json`：
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+需要取消循环时重置 gate：
+
+```bash
+bash .claude/hooks/iterative-improve-gate.sh --reset
+```
+
+脚本支持通过环境变量配置：
+
+| 变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `ITERATIVE_IMPROVE_PLAN_DIRS` | `plans reports/plans code/reports/plans` | 搜索计划文件的目录 |
+| `ITERATIVE_IMPROVE_WORKTREE_PREFIX` | `<repo-name>-opt-` | 允许清理的 worktree 路径前缀 |
+| `ITERATIVE_IMPROVE_BRANCH_REGEX` | `opt/*`、`feature/opt-*`、`codex/opt-*` | 允许合并/删除的优化分支模式 |
+| `ITERATIVE_IMPROVE_TRIGGER_REGEX` | 中英文循环优化触发词 | 激活 gate 的提示词 |
+| `ITERATIVE_IMPROVE_RESET_REGEX` | 中英文 reset 触发词 | 退出 gate 的提示词 |
+
+项目特定规则应写在目标项目自己的说明文件中。不要把私人路径、凭据或本地数据目录硬编码进公开脚本。
 
 ## 使用方式
 
@@ -114,10 +182,12 @@ Max rounds: 3.
 
 ```text
 iterative-improve/
-├── SKILL.md          # Agent Skill 主体
-├── README.md         # 英文说明
-├── README.zh-CN.md   # 中文说明
-└── LICENSE           # MIT License
+├── SKILL.md                       # Agent Skill 主体
+├── README.md                      # 英文说明
+├── README.zh-CN.md                # 中文说明
+├── scripts/
+│   └── claude-code-gate.sh        # 可选 Claude Code hook 模板
+└── LICENSE                        # MIT License
 ```
 
 ## 隐私

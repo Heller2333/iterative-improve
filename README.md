@@ -37,6 +37,8 @@ Update later with:
 git -C ~/.codex/skills/iterative-improve pull
 ```
 
+This installs the Markdown skill. The optional shell gate script remains available inside the cloned repository under `scripts/`.
+
 ### Claude Code
 
 Clone this repository into your Claude Code skills directory:
@@ -52,6 +54,8 @@ Update later with:
 git -C ~/.claude/skills/iterative-improve pull
 ```
 
+This installs the Markdown skill. To enforce the workflow with Claude Code hooks, see [Optional Claude Code Gate](#optional-claude-code-gate).
+
 ### Manual Copy
 
 Copy the repository folder into any skills directory supported by your agent:
@@ -59,6 +63,70 @@ Copy the repository folder into any skills directory supported by your agent:
 ```bash
 cp -R iterative-improve ~/.codex/skills/iterative-improve
 ```
+
+## Optional Claude Code Gate
+
+The skill can be used as Markdown-only guidance. If you want tool-call enforcement, this repository also ships a generic Claude Code hook template:
+
+```text
+scripts/claude-code-gate.sh
+```
+
+Install it inside a project:
+
+```bash
+mkdir -p .claude/hooks
+cp ~/.codex/skills/iterative-improve/scripts/claude-code-gate.sh .claude/hooks/iterative-improve-gate.sh
+chmod +x .claude/hooks/iterative-improve-gate.sh
+```
+
+Add it to the project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Reset the gate when you need to cancel a loop:
+
+```bash
+bash .claude/hooks/iterative-improve-gate.sh --reset
+```
+
+The script is configurable with environment variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `ITERATIVE_IMPROVE_PLAN_DIRS` | `plans reports/plans code/reports/plans` | Directories searched for plan files |
+| `ITERATIVE_IMPROVE_WORKTREE_PREFIX` | `<repo-name>-opt-` | Allowed worktree path prefix |
+| `ITERATIVE_IMPROVE_BRANCH_REGEX` | `opt/*`, `feature/opt-*`, `codex/opt-*` | Allowed optimization branch patterns |
+| `ITERATIVE_IMPROVE_TRIGGER_REGEX` | English and Chinese iterative-improve trigger phrases | Prompts that activate the gate |
+| `ITERATIVE_IMPROVE_RESET_REGEX` | English and Chinese reset phrases | Prompts that reset the gate |
+
+Keep project-specific policy in the target project's instructions. Do not hard-code private paths, credentials, or local data directories into the public script.
 
 ## Usage
 
@@ -114,10 +182,12 @@ If no gate exists, the agent should manually follow the same discipline.
 
 ```text
 iterative-improve/
-├── SKILL.md          # The actual Agent Skill
-├── README.md         # English documentation
-├── README.zh-CN.md   # Chinese documentation
-└── LICENSE           # MIT License
+├── SKILL.md                       # The actual Agent Skill
+├── README.md                      # English documentation
+├── README.zh-CN.md                # Chinese documentation
+├── scripts/
+│   └── claude-code-gate.sh        # Optional Claude Code hook template
+└── LICENSE                        # MIT License
 ```
 
 ## Privacy

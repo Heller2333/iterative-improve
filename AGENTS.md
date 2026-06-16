@@ -7,7 +7,7 @@ This file is for AI coding agents that install or maintain this repository insid
 Install a reusable iterative-improvement workflow with two layers:
 
 1. `SKILL.md`: portable agent instructions.
-2. `scripts/claude-code-gate.sh`: optional Claude Code hook enforcement.
+2. `scripts/claude-code-gate.sh`: required Claude Code hook enforcement.
 
 Keep this repository generic. Do not add project-specific paths, credentials, private data directories, or local workflow state.
 
@@ -41,7 +41,7 @@ else
 fi
 ```
 
-Install the optional Claude Code gate in the target project:
+Install the required Claude Code gate in the target project:
 
 ```bash
 mkdir -p .claude/hooks
@@ -50,6 +50,8 @@ chmod +x .claude/hooks/iterative-improve-gate.sh
 ```
 
 If the project should not vendor this repository, remove `.iterative-improve/` after copying the skill and hook.
+
+Do not mark installation complete until both the skill and gate hook are installed. If the gate cannot be installed, report the blocker and do not run iterative-improvement implementation steps.
 
 ## Claude Code Hook Configuration
 
@@ -85,9 +87,11 @@ Merge this into the target project's `.claude/settings.json`. Preserve any exist
 
 If the project already has `UserPromptSubmit` or `PreToolUse` hooks, append this command to the relevant hook arrays rather than replacing existing commands.
 
-## Optional Environment Variables
+The hook registration is mandatory for Claude Code usage. Without it, `/iterative-improve` may be used only to inspect the repository and explain the missing setup; it must not proceed to code edits, experiments, commits, merges, or cleanup.
 
-Set these in the hook command or the shell environment when the project needs different conventions.
+## Configurable Environment Variables
+
+Set these in the hook command or the shell environment when the project needs different conventions. These variables are optional configuration; the gate itself is not optional.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -132,7 +136,7 @@ rm -f .scratch/agent-state/iterative-improve-gate.json .scratch/agent-state/last
 
 ## Plan Requirements
 
-When the gate is active, `ExitPlanMode` must provide or point to a plan containing:
+When `/iterative-improve` is active, `ExitPlanMode` must provide or point to a plan containing:
 
 - Goal or objective.
 - Round or iteration.
@@ -145,22 +149,26 @@ When the gate is active, `ExitPlanMode` must provide or point to a plan containi
 
 The hook accepts English or Chinese wording for these concepts.
 
+If no active gate is present to enforce these requirements, stop before implementation.
+
 ## Expected Loop
 
 The agent should run one round at a time:
 
 1. Detect the iterative-improve request.
-2. Read project instructions such as `AGENTS.md`, `CLAUDE.md`, README files, CI config, and scripts.
-3. Write a plan file in one of the configured plan directories.
-4. Exit planning only when the plan includes all required items.
-5. Create and enter the planned worktree or branch.
-6. Implement only the planned round.
-7. Verify with real commands and capture outcomes.
-8. Write a result artifact.
-9. Commit the round.
-10. Merge back according to project rules.
-11. Clean up the worktree or branch.
-12. Reset gate state or start the next round intentionally.
+2. Verify that the gate hook is installed and registered, or install it before continuing.
+3. Activate the gate through the trigger prompt or project entrypoint.
+4. Read project instructions such as `AGENTS.md`, `CLAUDE.md`, README files, CI config, and scripts.
+5. Write a plan file in one of the configured plan directories.
+6. Exit planning only when the gate accepts a plan containing all required items.
+7. Create and enter the planned worktree or branch.
+8. Implement only the planned round.
+9. Verify with real commands and capture outcomes.
+10. Write a result artifact.
+11. Commit the round.
+12. Merge back according to project rules.
+13. Clean up the worktree or branch.
+14. Reset gate state or start the next round intentionally.
 
 ## Troubleshooting
 
@@ -175,6 +183,8 @@ If a loop was started accidentally, run:
 ```bash
 bash .claude/hooks/iterative-improve-gate.sh --reset
 ```
+
+If the hook was never installed, install it before starting or resuming the loop. Do not substitute a verbal promise to follow the process.
 
 ## Validation Before Publishing Changes
 

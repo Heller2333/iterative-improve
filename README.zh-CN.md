@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-一个用于循环优化工作的受控 Agent Skill：先计划，隔离高风险改动，用真实命令验证，记录结果，谨慎提交，合并，清理，然后再决定是否继续下一轮。
+一个用于循环优化工作的强制 gate Agent Skill：先激活 gate，再计划，隔离高风险改动，用真实命令验证，记录结果，谨慎提交，合并，清理，然后再决定是否继续下一轮。
 
 它不绑定具体仓库。适合重构、迁移、策略实验、报告生成流程、数据工作流、质量改进循环，以及任何不希望 AI coding agent 一路跑偏的任务。
 
@@ -10,15 +10,15 @@
 
 告诉你的 AI coding agent：
 
-> “Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the optional Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works.”
+> “Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the required Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works.”
 
 Agent 会执行：
 
 1. 将这个仓库克隆到当前项目中，通常命名为 `.iterative-improve/`。
 2. 将 `SKILL.md` 安装到你的 agent skills 目录。
 3. 将 `scripts/claude-code-gate.sh` 复制到 `.claude/hooks/`。
-4. 把 hook 配置合并进 `.claude/settings.json`。
-5. 把项目特定规则保留在目标项目自己的说明文件中。
+4. 把必需的 hook 配置合并进 `.claude/settings.json`。
+5. 如果 gate 不能安装或激活，就拒绝继续执行 `/iterative-improve` 的实施步骤。
 
 之后可以这样启动循环：
 
@@ -41,6 +41,7 @@ Max rounds: 3.
 ```text
 触发提示
   -> 读取项目规则
+  -> 激活必需 gate
   -> 规划一轮任务
   -> 批准计划/退出计划阶段
   -> 创建隔离 worktree 或分支
@@ -52,13 +53,15 @@ Max rounds: 3.
 ```
 
 - `SKILL.md` 教 Agent 按循环优化流程工作。
-- `scripts/claude-code-gate.sh` 是可选 Claude Code hook，会在工具调用前阻断常见跑偏行为。
+- `scripts/claude-code-gate.sh` 是这个流程在 Claude Code 中必需的 gate hook。
 - gate 的临时状态保存在目标项目的 `.scratch/agent-state/` 下。
 - gate 是通用脚本，可通过环境变量配置；项目特定规则应写在目标项目自己的说明文件中。
 
-## Gate 会约束什么
+## 强制 Gate 合约
 
-安装可选 Claude Code hook 后，它可以阻断：
+使用这个 Skill 时，流程必须运行在 gate 约束下。在 Claude Code 中，需要安装并启用 `scripts/claude-code-gate.sh`。在其他环境中，也必须先使用等价的阻断机制，然后才能执行任何会修改项目的循环优化步骤。
+
+gate 会阻断：
 
 - 没有计划前修改代码。
 - 计划未批准前执行改动或验证命令。
@@ -66,7 +69,7 @@ Max rounds: 3.
 - 在非允许的优化分支或 worktree 模式下执行 merge/cleanup。
 - 计划缺少目标、轮次、worktree 或分支隔离、验证、结果文件、提交、合并、清理等关键项时退出 Plan Mode。
 
-也可以只使用 Markdown Skill，不安装 hook。此时 Agent 仍会按同样流程工作，只是依赖指令而不是工具层阻断。
+如果 gate 不能安装或激活，Agent 可以检查文件并说明缺少的设置，但不能继续进入循环优化实施阶段。
 
 ## 手动安装
 
@@ -96,7 +99,7 @@ git clone https://github.com/Heller2333/iterative-improve.git ~/.claude/skills/i
 git -C ~/.claude/skills/iterative-improve pull
 ```
 
-### 可选 Claude Code Hook
+### 必需 Claude Code Hook
 
 在目标项目中执行：
 
@@ -123,7 +126,7 @@ iterative-improve/
 ├── README.md                      # 英文说明
 ├── README.zh-CN.md                # 中文说明
 ├── scripts/
-│   └── claude-code-gate.sh        # 可选 Claude Code hook 模板
+│   └── claude-code-gate.sh        # 必需 Claude Code gate hook 模板
 └── LICENSE                        # MIT License
 ```
 

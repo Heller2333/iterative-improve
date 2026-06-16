@@ -1,13 +1,13 @@
 ---
 name: iterative-improve
-description: Run a guarded iterative improvement loop for a project, module, strategy, report pipeline, or product workflow. Use when the user says "/iterative-improve", "迭代优化", "循环优化", "持续改进", "自动循环改进", "按反馈优化", or asks an agent to repeatedly plan, implement, verify, review, and continue across rounds while respecting project gates, Plan Mode, worktrees, commits, and result artifacts.
+description: Run a gate-enforced iterative improvement loop for a project, module, strategy, report pipeline, or product workflow. Use when the user says "/iterative-improve", "迭代优化", "循环优化", "持续改进", "自动循环改进", "按反馈优化", or asks an agent to repeatedly plan, implement, verify, review, and continue across rounds while obeying a mandatory gate, Plan Mode, worktrees or branch isolation, commits, and result artifacts.
 ---
 
 # Iterative Improve
 
-Run a controlled loop: **discover rules → plan → implement → verify → review → write result → choose next round**.
+Run a controlled loop: **discover rules → activate gate → plan → implement → verify → review → write result → merge/cleanup → choose next round**.
 
-This skill is generic. Do not hard-code one repository, metric, tool, branch name, directory layout, or Claude/Codex feature. Discover project rules from local files and use available gates/hooks when present.
+This skill is generic. Do not hard-code one repository, metric, tool, branch name, directory layout, or Claude/Codex feature. Discover project rules from local files and enforce the required gate before any mutating iterative-improvement work.
 
 ## 0. Discover The Local Contract
 
@@ -20,11 +20,17 @@ Before the first round, inspect local sources of truth:
 
 State assumptions only after this inspection. If the repo has stricter rules than this skill, follow the repo.
 
-## 1. Start Gate
+## 1. Start Mandatory Gate
 
-If the project defines an iteration gate, trigger it through the project's documented entrypoint instead of bypassing it.
+Using this skill requires a gate. Treat the gate as part of the skill contract, not an optional add-on.
 
-This repository also includes an optional Claude Code hook template at `scripts/claude-code-gate.sh`. Use it only when the project wants code-level enforcement instead of prompt-only discipline. Copy it into the target project and tune it through environment variables rather than editing project-specific paths into the script.
+Before planning or mutating files:
+
+- If the project already defines an iteration gate, trigger it through the project's documented entrypoint.
+- If the project does not define a gate and Claude Code hooks are available, install this repository's gate script from `scripts/claude-code-gate.sh` into the target project and configure the required hooks.
+- If no hook or equivalent enforcement mechanism is available, stop before implementation and tell the user that `/iterative-improve` cannot safely run without a gate.
+
+Do not replace the gate with prompt-only discipline. Prompt discipline can explain what to do, but it is not a gate.
 
 Common trigger phrases:
 
@@ -32,16 +38,13 @@ Common trigger phrases:
 - `按反馈优化：<topic>`
 - `/iterative-improve <topic>`
 
-If a gate is active:
+When the gate is active:
 
 - Treat gate denial as a real process error, not an inconvenience.
 - Read the denial message and satisfy the missing requirement.
 - Do not delete state files unless the user asks to exit/cancel the loop or the gate provides a documented reset command.
 
-If the project has no gate:
-
-- Simulate the gate behavior manually: no mutating work until the plan exists and the user/project rules permit execution.
-- Keep the same artifact discipline: one plan and one result per round.
+If the gate cannot be activated, do not proceed with the loop. You may inspect files and propose installation steps, but do not edit project code, run experiments, commit, merge, or clean up as part of an iterative-improvement round.
 
 ### Exiting A Gate
 
@@ -51,11 +54,11 @@ Use only documented exit paths. Typical examples:
 - Run a project-provided reset command such as `bash .claude/hooks/optimization-gate.sh --reset`.
 - As a last resort, use the documented state-file removal command, if the project explicitly supports it.
 
-After exiting, state that the loop is canceled and stop iterative execution.
+After exiting, state that the loop is canceled and stop iterative execution. Restarting requires activating the gate again.
 
 ## 2. Plan Phase
 
-Use real Plan Mode when available. If Plan Mode tools are unavailable, enforce a read-only planning phase yourself.
+Use real Plan Mode when available. If Plan Mode tools are unavailable, use the gate's read-only planning state; if no gate can enforce that state, stop before implementation.
 
 Planning rules:
 
@@ -75,7 +78,7 @@ Each plan file must include:
 - Risk/revert plan.
 - Execution logistics required by the project: worktree, branch, commit, merge, cleanup, or deployment steps.
 
-If a project gate validates `ExitPlanMode`, make the plan satisfy that gate exactly.
+The gate must validate the plan before implementation. Make the plan satisfy the active gate exactly.
 
 ## 3. Worktree And Branch Isolation
 
@@ -89,7 +92,7 @@ Default generic policy:
 - Do not merge from inside the loop worktree unless project rules explicitly allow it.
 - If the project has data directories or large local artifacts, follow its symlink/copy safety rules exactly.
 
-For tiny documentation-only or single-file fixes, a worktree may be unnecessary if project rules allow direct edits.
+For tiny documentation-only or single-file fixes, a worktree may be unnecessary only if the active gate and project rules explicitly allow direct edits.
 
 ## 4. Execute One Round
 
@@ -159,6 +162,7 @@ When stopping, summarize the loop with links/paths to plans, results, commits, a
 ## 8. Safety Defaults
 
 - Never bypass hooks or gates silently.
+- Never run this skill in implementation mode without an active gate.
 - Never use destructive Git commands unless the user explicitly asks and project rules allow them.
 - Never overwrite unrelated user changes.
 - Never treat a failed gate as permission to manually mutate state.

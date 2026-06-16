@@ -2,7 +2,7 @@
 
 English | [中文](README.zh-CN.md)
 
-A guarded Agent Skill for iterative coding work: plan first, isolate risky changes, verify with real commands, record results, commit deliberately, merge, clean up, and only then continue.
+A gate-enforced Agent Skill for iterative coding work: activate a gate, plan first, isolate risky changes, verify with real commands, record results, commit deliberately, merge, clean up, and only then continue.
 
 It is repository-agnostic. Use it for refactors, migrations, strategy experiments, report pipelines, data workflows, quality loops, and any task where an AI coding agent should improve in controlled rounds instead of drifting.
 
@@ -10,15 +10,15 @@ It is repository-agnostic. Use it for refactors, migrations, strategy experiment
 
 Tell your AI coding agent:
 
-> "Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the optional Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works."
+> "Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the required Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works."
 
 The agent will:
 
 1. Clone this repository into the current project, usually as `.iterative-improve/`.
 2. Install `SKILL.md` into your agent's skills directory.
 3. Copy `scripts/claude-code-gate.sh` into `.claude/hooks/`.
-4. Merge the hook configuration into `.claude/settings.json`.
-5. Keep project-specific rules in your project's own instructions.
+4. Merge the required hook configuration into `.claude/settings.json`.
+5. Refuse to run `/iterative-improve` implementation steps if the gate cannot be installed or activated.
 
 After that, start a loop with:
 
@@ -41,6 +41,7 @@ Chinese prompts also work:
 ```text
 Trigger prompt
   -> read project rules
+  -> activate required gate
   -> plan one round
   -> approve/exit planning
   -> create isolated worktree or branch
@@ -52,13 +53,15 @@ Trigger prompt
 ```
 
 - `SKILL.md` teaches the agent the iterative workflow.
-- `scripts/claude-code-gate.sh` is an optional Claude Code hook that blocks common drift before tool calls run.
+- `scripts/claude-code-gate.sh` is the required Claude Code gate hook for this workflow.
 - The gate stores temporary state under `.scratch/agent-state/` in the target project.
 - The gate is generic and configurable with environment variables; project-specific policy should live in the target project's own instructions.
 
-## What The Gate Enforces
+## Mandatory Gate Contract
 
-When the optional Claude Code hook is installed, it can block:
+When this skill is used, the workflow must run under a gate. In Claude Code, install and enable `scripts/claude-code-gate.sh`. In other environments, use an equivalent enforcement mechanism before any mutating work.
+
+The gate blocks:
 
 - Code edits before a plan exists.
 - Execution before the plan is approved.
@@ -66,7 +69,7 @@ When the optional Claude Code hook is installed, it can block:
 - Unsafe merge or cleanup commands outside allowed optimization branch/worktree patterns.
 - Exiting Plan Mode when the plan is missing key items such as goal, round, worktree or branch isolation, verification, result artifact, commit, merge, and cleanup.
 
-The Markdown skill can still be used without the hook. In that case, the agent follows the same process by instruction rather than enforcement.
+If the gate cannot be installed or activated, the agent may inspect files and explain the missing setup, but must not continue into iterative-improvement implementation.
 
 ## Manual Installation
 
@@ -96,7 +99,7 @@ Update later:
 git -C ~/.claude/skills/iterative-improve pull
 ```
 
-### Optional Claude Code Hook
+### Required Claude Code Hook
 
 From a target project:
 
@@ -123,7 +126,7 @@ iterative-improve/
 ├── README.md                      # English documentation
 ├── README.zh-CN.md                # Chinese documentation
 ├── scripts/
-│   └── claude-code-gate.sh        # Optional Claude Code hook template
+│   └── claude-code-gate.sh        # Required Claude Code gate hook template
 └── LICENSE                        # MIT License
 ```
 

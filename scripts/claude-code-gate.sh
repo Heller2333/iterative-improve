@@ -178,9 +178,16 @@ is_readonly_bash() {
   esac
 }
 
+normalize_gate_command() {
+  printf '%s' "$1" \
+    | sed 's/[[:space:]]*2>&1//g' \
+    | sed 's/[[:space:]]*&&[[:space:]]*echo[[:space:]][[:space:]]*.*$//' \
+    | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
 is_reset_command() {
   local cmd script_path
-  cmd=$(printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  cmd=$(normalize_gate_command "$1")
   script_path="$project_root/.claude/hooks/iterative-improve-gate.sh"
 
   case "$cmd" in
@@ -194,7 +201,7 @@ is_reset_command() {
 
 is_cleanup_command() {
   local cmd wt br merge reset
-  cmd=$(printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  cmd=$(normalize_gate_command "$1")
 
   wt='git[[:space:]]+worktree[[:space:]]+remove[[:space:]]+((\.\./)?'"$worktree_prefix"'[[:alnum:]_.-]+|/[^[:space:]]*/'"$worktree_prefix"'[[:alnum:]_.-]+)'
   br='git[[:space:]]+branch[[:space:]]+-d[[:space:]]+('"$branch_regex"')'

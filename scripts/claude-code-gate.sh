@@ -16,9 +16,12 @@ state_dir="${ITERATIVE_IMPROVE_STATE_DIR:-$project_root/.scratch/agent-state}"
 state_file="$state_dir/iterative-improve-gate.json"
 last_plan_file="$state_dir/last-approved-plan.md"
 
-plan_dirs="${ITERATIVE_IMPROVE_PLAN_DIRS:-plans reports/plans code/reports/plans}"
-worktree_prefix="${ITERATIVE_IMPROVE_WORKTREE_PREFIX:-$(basename "$project_root")-opt-}"
-branch_regex="${ITERATIVE_IMPROVE_BRANCH_REGEX:-opt/[[:alnum:]_./-]+|feature/opt[-/][[:alnum:]_./-]+|codex/opt[-/][[:alnum:]_./-]+}"
+repo_name="$(basename "$project_root")"
+plan_dirs="${ITERATIVE_IMPROVE_PLAN_DIRS:-plans .agents/plans reports/plans docs/plans code/reports/plans}"
+result_dirs="${ITERATIVE_IMPROVE_RESULT_DIRS:-results .agents/results reports/results docs/results code/reports/results}"
+worktree_prefix="${ITERATIVE_IMPROVE_WORKTREE_PREFIX:-$repo_name-improve-}"
+worktree_prefixes="${ITERATIVE_IMPROVE_WORKTREE_PREFIXES:-$worktree_prefix $repo_name-opt-}"
+branch_regex="${ITERATIVE_IMPROVE_BRANCH_REGEX:-improve/[[:alnum:]_./-]+|iter/[[:alnum:]_./-]+|feature/improve[-/][[:alnum:]_./-]+|codex/improve[-/][[:alnum:]_./-]+|opt/[[:alnum:]_./-]+|feature/opt[-/][[:alnum:]_./-]+|codex/opt[-/][[:alnum:]_./-]+}"
 trigger_regex="${ITERATIVE_IMPROVE_TRIGGER_REGEX:-/iterative-improve|开始循环优化|按[[:space:]]*反馈优化|按[[:space:]]*Codex[[:space:]]*反馈优化|循环优化|迭代优化|持续改进|automatic iterative improvement|iterative improvement loop}"
 reset_regex="${ITERATIVE_IMPROVE_RESET_REGEX:-退出[[:space:]]*(gate|Gate|循环优化|迭代优化)|关闭[[:space:]]*(gate|Gate|循环优化|迭代优化)|取消循环优化|停止循环优化|重置[[:space:]]*(gate|Gate|循环优化)|reset[[:space:]]+(gate|iterative[[:space:]]+improve|optimization[[:space:]]+gate)}"
 
@@ -116,16 +119,22 @@ latest_plan_file() {
 
 resolve_plan_file() {
   local candidate="$1"
+  local resolved
 
   if [ -n "$candidate" ]; then
     case "$candidate" in
       /*)
-        [ -f "$candidate" ] && printf '%s\n' "$candidate" && return 0
+        resolved="$candidate"
         ;;
       *)
-        [ -f "$project_root/$candidate" ] && printf '%s\n' "$project_root/$candidate" && return 0
+        resolved="$project_root/$candidate"
         ;;
     esac
+
+    if [ -f "$resolved" ] && is_plan_file "$resolved"; then
+      printf '%s\n' "$resolved"
+      return 0
+    fi
   fi
 
   latest_plan_file
@@ -155,6 +164,24 @@ is_plan_file() {
     esac
   done
   return 1
+}
+
+regex_escape() {
+  printf '%s' "$1" | sed 's/[][\/.^$*+?(){}|]/\\&/g'
+}
+
+worktree_prefix_regex() {
+  local prefix escaped joined
+  joined=""
+  for prefix in $worktree_prefixes; do
+    escaped=$(regex_escape "$prefix")
+    if [ -z "$joined" ]; then
+      joined="$escaped"
+    else
+      joined="$joined|$escaped"
+    fi
+  done
+  printf '%s' "$joined"
 }
 
 is_readonly_bash() {
@@ -200,15 +227,30 @@ is_reset_command() {
 }
 
 is_cleanup_command() {
-  local cmd wt br merge reset
+  local cmd wt br merge reset wt_prefix_regex
   cmd=$(normalize_gate_command "$1")
+  wt_prefix_regex=$(worktree_prefix_regex)
 
-  wt='git[[:space:]]+worktree[[:space:]]+remove[[:space:]]+((\.\./)?'"$worktree_prefix"'[[:alnum:]_.-]+|/[^[:space:]]*/'"$worktree_prefix"'[[:alnum:]_.-]+)'
+  wt='git[[:space:]]+worktree[[:space:]]+remove[[:space:]]+((\.\./)?('"$wt_prefix_regex"')[[:alnum:]_.-]+|/[^[:space:]]*/('"$wt_prefix_regex"')[[:alnum:]_.-]+)'
   br='git[[:space:]]+branch[[:space:]]+-d[[:space:]]+('"$branch_regex"')'
   merge='git[[:space:]]+merge[[:space:]]+(--no-edit[[:space:]]+)?('"$branch_regex"')([[:space:]]+--no-edit)?'
   reset='rm[[:space:]]+-f[[:space:]]+(\.scratch/agent-state/iterative-improve-gate\.json|'"$state_file"')([[:space:]]+(\.scratch/agent-state/last-approved-plan\.md|'"$last_plan_file"'))*'
 
   printf '%s' "$cmd" | grep -Eq "^($merge|$wt|$br|$reset)$|^$merge[[:space:]]*&&[[:space:]]*$wt[[:space:]]*&&[[:space:]]*$br([[:space:]]*&&[[:space:]]*$reset)?$|^$wt[[:space:]]*&&[[:space:]]*$br([[:space:]]*&&[[:space:]]*$reset)?$|^$wt[[:space:]]*&&[[:space:]]*$reset$|^$br[[:space:]]*&&[[:space:]]*$reset$|^git[[:space:]]+worktree[[:space:]]+prune$"
+}
+
+plan_has_result_path() {
+  local plan="$1"
+  local dir escaped
+
+  for dir in $result_dirs; do
+    escaped=$(regex_escape "$dir")
+    if printf '%s' "$plan" | grep -Eq "(^|[^[:alnum:]_./-])$escaped/[^[:space:]'\"\`)]+\.md([^[:alnum:]_.-]|$)"; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 plan_missing_reason() {
@@ -220,6 +262,7 @@ plan_missing_reason() {
   printf '%s' "$plan" | grep -Eiq 'worktree|branch|隔离|分支' || missing+=("worktree/branch isolation")
   printf '%s' "$plan" | grep -Eiq 'verify|test|validation|验证|测试' || missing+=("verification")
   printf '%s' "$plan" | grep -Eiq 'result|report|结果|报告' || missing+=("result artifact")
+  plan_has_result_path "$plan" || missing+=("concrete result file path")
   printf '%s' "$plan" | grep -Eiq 'commit|提交' || missing+=("commit")
   printf '%s' "$plan" | grep -Eiq 'merge|合并' || missing+=("merge")
   printf '%s' "$plan" | grep -Eiq 'cleanup|worktree remove|清理|删除 worktree' || missing+=("cleanup")
@@ -244,7 +287,7 @@ if [ "$event" = "UserPromptSubmit" ]; then
 
   if printf '%s' "$prompt" | grep -Eiq "$trigger_regex"; then
     write_state "loop_pending_plan" "$session_id" "$prompt"
-    user_context "iterative-improve gate" "An iterative-improve request was detected. Before mutating files, enter/perform a read-only planning phase, inspect local project rules, write a plan file, and pass ExitPlanMode if available. The plan must include goal, round, worktree/branch isolation, verification, result artifact, commit, merge, and cleanup."
+    user_context "iterative-improve gate" "An iterative-improve request was detected. Before mutating files, enter/perform a read-only planning phase, inspect local project rules, write a plan file, and pass ExitPlanMode if available. The plan must include goal, round, worktree/branch isolation, verification, a concrete result file path under a configured result directory, commit, merge, and cleanup."
   fi
 
   exit 0
@@ -266,16 +309,17 @@ if [ "$event" = "PreToolUse" ]; then
   if [ "$tool_name" = "ExitPlanMode" ]; then
     plan=$(printf '%s' "$input" | jq -r '.tool_input.plan // empty' 2>/dev/null)
     plan_file=$(printf '%s' "$input" | jq -r '.tool_input.planFilePath // empty' 2>/dev/null)
+    resolved_plan_file=$(resolve_plan_file "$plan_file")
+
+    if [ -z "$resolved_plan_file" ]; then
+      deny_pretool "ExitPlanMode denied: no plan file was found in configured plan directories."
+      exit 0
+    fi
+
+    plan_file="$resolved_plan_file"
 
     if [ -z "$plan" ]; then
-      resolved_plan_file=$(resolve_plan_file "$plan_file")
-      if [ -n "$resolved_plan_file" ]; then
-        plan_file="$resolved_plan_file"
         plan=$(cat "$resolved_plan_file")
-      else
-        deny_pretool "ExitPlanMode denied: no plan text was provided and no plan file was found in configured plan directories."
-        exit 0
-      fi
     fi
 
     if reason=$(plan_missing_reason "$plan"); then

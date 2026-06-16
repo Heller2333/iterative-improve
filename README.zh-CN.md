@@ -10,15 +10,28 @@
 
 告诉你的 AI coding agent：
 
-> “Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the required Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works.”
+> “Install https://github.com/Heller2333/iterative-improve in this project. Set up the required Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works.”
 
 Agent 会执行：
 
-1. 将这个仓库克隆到当前项目中，通常命名为 `.iterative-improve/`。
-2. 将 `SKILL.md` 安装到你的 agent skills 目录。
-3. 将 `scripts/claude-code-gate.sh` 复制到 `.claude/hooks/`。
-4. 把必需的 hook 配置合并进 `.claude/settings.json`。
+1. 在目标项目根目录运行 `install.sh`。
+2. 将 `scripts/claude-code-gate.sh` 复制到 `.claude/hooks/`。
+3. 把必需的 hook 配置合并进 `.claude/settings.json`。
+4. 将 `.scratch/agent-state/` 加入 `.gitignore`。
 5. 如果 gate 不能安装或激活，就拒绝继续执行 `/iterative-improve` 的实施步骤。
+
+在目标项目中直接安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash
+```
+
+或者从本地 clone 安装：
+
+```bash
+git clone https://github.com/Heller2333/iterative-improve.git /tmp/iterative-improve
+bash /tmp/iterative-improve/install.sh
+```
 
 之后可以这样启动循环：
 
@@ -67,11 +80,15 @@ gate 会阻断：
 - 计划未批准前执行改动或验证命令。
 - 计划批准后仍在主 worktree 直接编辑。
 - 在非允许的优化分支或 worktree 模式下执行 merge/cleanup。
-- 计划缺少目标、轮次、worktree 或分支隔离、验证、结果文件、提交、合并、清理等关键项时退出 Plan Mode。
+- 计划缺少目标、轮次、worktree 或分支隔离、验证、具体结果文件路径、提交、合并、清理等关键项时退出 Plan Mode。
+
+公开默认命名策略使用 `improve/*` 分支和 `<repo>-improve-*` worktree，同时兼容旧的 `opt/*` 分支和 `<repo>-opt-*` worktree。
 
 如果 gate 不能安装或激活，Agent 可以检查文件并说明缺少的设置，但不能继续进入循环优化实施阶段。
 
 ## 手动安装
+
+安装 skill 目录只会让 agent 能发现这套说明。真正执行 `/iterative-improve` 前，项目级 gate hook 仍然必须安装。
 
 ### Codex
 
@@ -101,7 +118,22 @@ git -C ~/.claude/skills/iterative-improve pull
 
 ### 必需 Claude Code Hook
 
-在目标项目中执行：
+推荐的项目级安装方式：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash
+```
+
+installer 会：
+
+- 依赖 `jq`；缺少 `jq` 时停止并提示安装。
+- 只修改当前项目。
+- 写入前备份 `.claude/settings.json`。
+- 用 `jq` 非破坏性合并 hook 配置。
+- 安装 `.claude/hooks/iterative-improve-gate.sh`。
+- 按需追加 `.scratch/agent-state/` 到 `.gitignore`。
+
+也可以手动安装 hook：
 
 ```bash
 mkdir -p .claude/hooks
@@ -117,6 +149,12 @@ chmod +x .claude/hooks/iterative-improve-gate.sh
 bash .claude/hooks/iterative-improve-gate.sh --reset
 ```
 
+卸载项目 hook：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --uninstall
+```
+
 ## 关键文件
 
 ```text
@@ -125,6 +163,7 @@ iterative-improve/
 ├── AGENTS.md                      # 给 coding agent 的技术参考
 ├── README.md                      # 英文说明
 ├── README.zh-CN.md                # 中文说明
+├── install.sh                     # 项目级安装/卸载脚本
 ├── scripts/
 │   └── claude-code-gate.sh        # 必需 Claude Code gate hook 模板
 └── LICENSE                        # MIT License

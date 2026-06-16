@@ -16,42 +16,45 @@ Keep this repository generic. Do not add project-specific paths, credentials, pr
 From the target project root:
 
 ```bash
-git clone https://github.com/Heller2333/iterative-improve.git .iterative-improve
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash
 ```
 
-Install the skill for Codex:
+Or from a local clone:
+
+```bash
+git clone https://github.com/Heller2333/iterative-improve.git /tmp/iterative-improve
+bash /tmp/iterative-improve/install.sh
+```
+
+The installer modifies only the current project:
+
+- Creates `.claude/hooks/iterative-improve-gate.sh`.
+- Backs up and merges `.claude/settings.json`.
+- Appends `.scratch/agent-state/` to `.gitignore` if needed.
+- Stops if `jq` is missing.
+- Stops if `.claude/settings.json` is invalid JSON.
+
+The installer does not write global `~/.claude` or `~/.codex` configuration.
+
+## Optional Skill Directory Install
+
+If the coding environment also needs a local skill copy, install the skill for Codex:
 
 ```bash
 mkdir -p ~/.codex/skills
-if [ -d ~/.codex/skills/iterative-improve ]; then
-  cp -R .iterative-improve/. ~/.codex/skills/iterative-improve/
-else
-  cp -R .iterative-improve ~/.codex/skills/iterative-improve
-fi
+git clone https://github.com/Heller2333/iterative-improve.git ~/.codex/skills/iterative-improve
 ```
 
-Install the skill for Claude Code if that environment uses `~/.claude/skills`:
+Or install for Claude Code if that environment uses `~/.claude/skills`:
 
 ```bash
 mkdir -p ~/.claude/skills
-if [ -d ~/.claude/skills/iterative-improve ]; then
-  cp -R .iterative-improve/. ~/.claude/skills/iterative-improve/
-else
-  cp -R .iterative-improve ~/.claude/skills/iterative-improve
-fi
+git clone https://github.com/Heller2333/iterative-improve.git ~/.claude/skills/iterative-improve
 ```
 
-Install the required Claude Code gate in the target project:
+Do not mark project setup complete until the project-level gate hook is installed and registered.
 
-```bash
-mkdir -p .claude/hooks
-cp .iterative-improve/scripts/claude-code-gate.sh .claude/hooks/iterative-improve-gate.sh
-chmod +x .claude/hooks/iterative-improve-gate.sh
-```
-
-If the project should not vendor this repository, remove `.iterative-improve/` after copying the skill and hook.
-
-Do not mark installation complete until both the skill and gate hook are installed. If the gate cannot be installed, report the blocker and do not run iterative-improvement implementation steps.
+If the gate cannot be installed, report the blocker and do not run iterative-improvement implementation steps.
 
 ## Claude Code Hook Configuration
 
@@ -96,9 +99,11 @@ Set these in the hook command or the shell environment when the project needs di
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `ITERATIVE_IMPROVE_STATE_DIR` | `.scratch/agent-state` under the project root | Gate state location |
-| `ITERATIVE_IMPROVE_PLAN_DIRS` | `plans reports/plans code/reports/plans` | Directories searched for plan files |
-| `ITERATIVE_IMPROVE_WORKTREE_PREFIX` | `<repo-name>-opt-` | Allowed optimization worktree path prefix |
-| `ITERATIVE_IMPROVE_BRANCH_REGEX` | `opt/*`, `feature/opt-*`, `codex/opt-*` patterns | Allowed optimization branch names |
+| `ITERATIVE_IMPROVE_PLAN_DIRS` | `plans .agents/plans reports/plans docs/plans code/reports/plans` | Directories searched for plan files |
+| `ITERATIVE_IMPROVE_RESULT_DIRS` | `results .agents/results reports/results docs/results code/reports/results` | Directories allowed for planned result files |
+| `ITERATIVE_IMPROVE_WORKTREE_PREFIX` | `<repo-name>-improve-` | Primary worktree path prefix |
+| `ITERATIVE_IMPROVE_WORKTREE_PREFIXES` | `<repo-name>-improve- <repo-name>-opt-` | Allowed cleanup worktree path prefixes |
+| `ITERATIVE_IMPROVE_BRANCH_REGEX` | `improve/*`, `iter/*`, `feature/improve-*`, `codex/improve-*`, plus `opt/*` compatibility patterns | Allowed iterative-improvement branch names |
 | `ITERATIVE_IMPROVE_TRIGGER_REGEX` | English and Chinese iterative-improve trigger phrases | Prompts that activate the gate |
 | `ITERATIVE_IMPROVE_RESET_REGEX` | English and Chinese reset phrases | Prompts that reset the gate |
 
@@ -142,12 +147,14 @@ When `/iterative-improve` is active, `ExitPlanMode` must provide or point to a p
 - Round or iteration.
 - Worktree or branch isolation.
 - Verification or tests.
-- Result artifact.
+- A concrete result file path under one configured result directory.
 - Commit step.
 - Merge step.
 - Cleanup step.
 
 The hook accepts English or Chinese wording for these concepts.
+
+At `ExitPlanMode`, the hook checks that the plan file exists in a configured plan directory and that the plan names the future result file path. It does not require the result file to exist yet.
 
 If no active gate is present to enforce these requirements, stop before implementation.
 
@@ -186,12 +193,21 @@ bash .claude/hooks/iterative-improve-gate.sh --reset
 
 If the hook was never installed, install it before starting or resuming the loop. Do not substitute a verbal promise to follow the process.
 
+Uninstall the project hook:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --uninstall
+```
+
+Uninstall removes the hook command from `.claude/settings.json` and deletes `.claude/hooks/iterative-improve-gate.sh`. It intentionally leaves `.gitignore` and `.scratch/agent-state/` alone.
+
 ## Validation Before Publishing Changes
 
 Run these checks in this repository:
 
 ```bash
 bash -n scripts/claude-code-gate.sh
+bash -n install.sh
 python3 path/to/skill-creator/scripts/quick_validate.py .
 ```
 

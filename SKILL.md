@@ -27,7 +27,7 @@ Using this skill requires a gate. Treat the gate as part of the skill contract, 
 Before planning or mutating files:
 
 - If the project already defines an iteration gate, trigger it through the project's documented entrypoint.
-- If the project does not define a gate and Claude Code hooks are available, install this repository's gate script from `scripts/claude-code-gate.sh` into the target project and configure the required hooks.
+- If the project does not define a gate and Claude Code hooks are available, run this repository's `install.sh` from the target project root to install the required project hook.
 - If no hook or equivalent enforcement mechanism is available, stop before implementation and tell the user that `/iterative-improve` cannot safely run without a gate.
 
 Do not replace the gate with prompt-only discipline. Prompt discipline can explain what to do, but it is not a gate.
@@ -76,9 +76,10 @@ Each plan file must include:
 - Implementation approach with affected subsystems.
 - Verification commands and acceptance criteria.
 - Risk/revert plan.
+- A concrete result file path under the project's result directory.
 - Execution logistics required by the project: worktree, branch, commit, merge, cleanup, or deployment steps.
 
-The gate must validate the plan before implementation. Make the plan satisfy the active gate exactly.
+The gate must validate the plan before implementation. Make the plan satisfy the active gate exactly. At ExitPlanMode, the plan file must exist in a configured plan directory; the planned result file path must be named, but the result file does not need to exist yet.
 
 ## 3. Worktree And Branch Isolation
 
@@ -89,6 +90,7 @@ Default generic policy:
 - Use a dedicated worktree/branch for multi-round loops or risky changes.
 - Use one worktree for the whole loop, not one worktree per round.
 - Do not hard-code the base branch; discover it with Git.
+- Prefer generic `improve/*` branches and `<repo>-improve-*` worktrees unless project rules specify another naming scheme. Existing `opt/*` naming is acceptable when the project uses it.
 - Do not merge from inside the loop worktree unless project rules explicitly allow it.
 - If the project has data directories or large local artifacts, follow its symlink/copy safety rules exactly.
 

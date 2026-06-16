@@ -10,15 +10,28 @@ It is repository-agnostic. Use it for refactors, migrations, strategy experiment
 
 Tell your AI coding agent:
 
-> "Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the required Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works."
+> "Install https://github.com/Heller2333/iterative-improve in this project. Set up the required Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works."
 
 The agent will:
 
-1. Clone this repository into the current project, usually as `.iterative-improve/`.
-2. Install `SKILL.md` into your agent's skills directory.
-3. Copy `scripts/claude-code-gate.sh` into `.claude/hooks/`.
-4. Merge the required hook configuration into `.claude/settings.json`.
+1. Run `install.sh` from the target project root.
+2. Copy `scripts/claude-code-gate.sh` into `.claude/hooks/`.
+3. Merge the required hook configuration into `.claude/settings.json`.
+4. Add `.scratch/agent-state/` to `.gitignore`.
 5. Refuse to run `/iterative-improve` implementation steps if the gate cannot be installed or activated.
+
+Direct install from a target project:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash
+```
+
+Or install from a local clone:
+
+```bash
+git clone https://github.com/Heller2333/iterative-improve.git /tmp/iterative-improve
+bash /tmp/iterative-improve/install.sh
+```
 
 After that, start a loop with:
 
@@ -67,11 +80,15 @@ The gate blocks:
 - Execution before the plan is approved.
 - Editing in the main worktree after approval.
 - Unsafe merge or cleanup commands outside allowed optimization branch/worktree patterns.
-- Exiting Plan Mode when the plan is missing key items such as goal, round, worktree or branch isolation, verification, result artifact, commit, merge, and cleanup.
+- Exiting Plan Mode when the plan is missing key items such as goal, round, worktree or branch isolation, verification, concrete result file path, commit, merge, and cleanup.
+
+The default public naming policy uses `improve/*` branches and `<repo>-improve-*` worktrees, while preserving compatibility with older `opt/*` branches and `<repo>-opt-*` worktrees.
 
 If the gate cannot be installed or activated, the agent may inspect files and explain the missing setup, but must not continue into iterative-improvement implementation.
 
 ## Manual Installation
+
+Installing a skill directory only makes the instructions discoverable. The project-level gate hook is still required before `/iterative-improve` may implement changes.
 
 ### Codex
 
@@ -101,7 +118,22 @@ git -C ~/.claude/skills/iterative-improve pull
 
 ### Required Claude Code Hook
 
-From a target project:
+The recommended project-level install is:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash
+```
+
+The installer:
+
+- Requires `jq`; it stops and asks you to install `jq` if missing.
+- Only modifies the current project.
+- Backs up `.claude/settings.json` before writing.
+- Non-destructively merges hook configuration with `jq`.
+- Installs `.claude/hooks/iterative-improve-gate.sh`.
+- Appends `.scratch/agent-state/` to `.gitignore` if needed.
+
+Manual hook installation is also possible:
 
 ```bash
 mkdir -p .claude/hooks
@@ -117,6 +149,12 @@ Reset the gate when you need to cancel a loop:
 bash .claude/hooks/iterative-improve-gate.sh --reset
 ```
 
+Uninstall the project hook:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --uninstall
+```
+
 ## Key Files
 
 ```text
@@ -125,6 +163,7 @@ iterative-improve/
 ├── AGENTS.md                      # Technical reference for coding agents
 ├── README.md                      # English documentation
 ├── README.zh-CN.md                # Chinese documentation
+├── install.sh                     # Project-level installer/uninstaller
 ├── scripts/
 │   └── claude-code-gate.sh        # Required Claude Code gate hook template
 └── LICENSE                        # MIT License

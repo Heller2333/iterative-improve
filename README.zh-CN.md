@@ -2,29 +2,75 @@
 
 [English](README.md) | 中文
 
-`iterative-improve` 是一个通用的、支持 gate 的 Agent Skill，用于约束 AI Agent 的循环优化流程。它会引导 Agent 先发现项目规则，再按轮次进行计划、隔离开发、执行、验证、审查、记录结果，并决定继续、转向或停止。
+一个用于循环优化工作的受控 Agent Skill：先计划，隔离高风险改动，用真实命令验证，记录结果，谨慎提交，合并，清理，然后再决定是否继续下一轮。
 
-这个 Skill 不绑定任何具体项目、指标、分支名、目录结构或工具厂商。
+它不绑定具体仓库。适合重构、迁移、策略实验、报告生成流程、数据工作流、质量改进循环，以及任何不希望 AI coding agent 一路跑偏的任务。
 
-## 功能
+## 快速开始
 
-它会引导 Agent 执行以下闭环：
+告诉你的 AI coding agent：
 
-1. 发现本地项目规则和 gate。
-2. 在修改文件前先写计划。
-3. 按项目要求使用隔离机制，例如 Git worktree。
-4. 每轮只实现当前计划中的改动。
-5. 用真实命令和真实输出进行验证。
-6. 审查结果并记录发现。
-7. 决定继续、调整方向或停止。
+> “Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the optional Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works.”
 
-适合用于重构、迁移、策略实验、报告生成流程、数据处理流程、质量改进循环等任务，尤其适合那些不适合让 Agent “一路乱修”的复杂工作。
+Agent 会执行：
 
-## 安装
+1. 将这个仓库克隆到当前项目中，通常命名为 `.iterative-improve/`。
+2. 将 `SKILL.md` 安装到你的 agent skills 目录。
+3. 将 `scripts/claude-code-gate.sh` 复制到 `.claude/hooks/`。
+4. 把 hook 配置合并进 `.claude/settings.json`。
+5. 把项目特定规则保留在目标项目自己的说明文件中。
+
+之后可以这样启动循环：
+
+```text
+Use /iterative-improve to improve the report generation pipeline.
+Goal: reduce noisy output and improve verification.
+Max rounds: 3.
+```
+
+中文提示也可以：
+
+```text
+使用 /iterative-improve 对数据处理模块做循环优化。
+目标：提升稳定性和可验证性。
+最多 3 轮。
+```
+
+## 工作方式
+
+```text
+触发提示
+  -> 读取项目规则
+  -> 规划一轮任务
+  -> 批准计划/退出计划阶段
+  -> 创建隔离 worktree 或分支
+  -> 实施计划中的改动
+  -> 用真实命令验证
+  -> 写结果文件
+  -> 提交、合并、清理
+  -> 决定是否继续
+```
+
+- `SKILL.md` 教 Agent 按循环优化流程工作。
+- `scripts/claude-code-gate.sh` 是可选 Claude Code hook，会在工具调用前阻断常见跑偏行为。
+- gate 的临时状态保存在目标项目的 `.scratch/agent-state/` 下。
+- gate 是通用脚本，可通过环境变量配置；项目特定规则应写在目标项目自己的说明文件中。
+
+## Gate 会约束什么
+
+安装可选 Claude Code hook 后，它可以阻断：
+
+- 没有计划前修改代码。
+- 计划未批准前执行改动或验证命令。
+- 计划批准后仍在主 worktree 直接编辑。
+- 在非允许的优化分支或 worktree 模式下执行 merge/cleanup。
+- 计划缺少目标、轮次、worktree 或分支隔离、验证、结果文件、提交、合并、清理等关键项时退出 Plan Mode。
+
+也可以只使用 Markdown Skill，不安装 hook。此时 Agent 仍会按同样流程工作，只是依赖指令而不是工具层阻断。
+
+## 手动安装
 
 ### Codex
-
-将仓库克隆到 Codex skills 目录：
 
 ```bash
 mkdir -p ~/.codex/skills
@@ -37,11 +83,7 @@ git clone https://github.com/Heller2333/iterative-improve.git ~/.codex/skills/it
 git -C ~/.codex/skills/iterative-improve pull
 ```
 
-这会安装 Markdown Skill。可选的 shell gate 脚本也会随仓库一起保留在 `scripts/` 目录。
-
 ### Claude Code
-
-将仓库克隆到 Claude Code skills 目录：
 
 ```bash
 mkdir -p ~/.claude/skills
@@ -54,25 +96,9 @@ git clone https://github.com/Heller2333/iterative-improve.git ~/.claude/skills/i
 git -C ~/.claude/skills/iterative-improve pull
 ```
 
-这会安装 Markdown Skill。如果你想用 Claude Code hooks 强制执行流程，见 [可选 Claude Code Gate](#可选-claude-code-gate)。
+### 可选 Claude Code Hook
 
-### 手动复制
-
-也可以直接复制到你的 Agent 支持的 skills 目录：
-
-```bash
-cp -R iterative-improve ~/.codex/skills/iterative-improve
-```
-
-## 可选 Claude Code Gate
-
-这个 Skill 可以只作为 Markdown 指南使用。如果你希望在工具调用层面强制执行流程，仓库也提供一个通用 Claude Code hook 模板：
-
-```text
-scripts/claude-code-gate.sh
-```
-
-在目标项目中安装：
+在目标项目中执行：
 
 ```bash
 mkdir -p .claude/hooks
@@ -80,35 +106,7 @@ cp ~/.codex/skills/iterative-improve/scripts/claude-code-gate.sh .claude/hooks/i
 chmod +x .claude/hooks/iterative-improve-gate.sh
 ```
 
-加入项目的 `.claude/settings.json`：
-
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash|Edit|Write|ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+然后将 [AGENTS.md](AGENTS.md) 中的 hooks 配置加入 `.claude/settings.json`。
 
 需要取消循环时重置 gate：
 
@@ -116,73 +114,12 @@ chmod +x .claude/hooks/iterative-improve-gate.sh
 bash .claude/hooks/iterative-improve-gate.sh --reset
 ```
 
-脚本支持通过环境变量配置：
-
-| 变量 | 默认值 | 用途 |
-| --- | --- | --- |
-| `ITERATIVE_IMPROVE_PLAN_DIRS` | `plans reports/plans code/reports/plans` | 搜索计划文件的目录 |
-| `ITERATIVE_IMPROVE_WORKTREE_PREFIX` | `<repo-name>-opt-` | 允许清理的 worktree 路径前缀 |
-| `ITERATIVE_IMPROVE_BRANCH_REGEX` | `opt/*`、`feature/opt-*`、`codex/opt-*` | 允许合并/删除的优化分支模式 |
-| `ITERATIVE_IMPROVE_TRIGGER_REGEX` | 中英文循环优化触发词 | 激活 gate 的提示词 |
-| `ITERATIVE_IMPROVE_RESET_REGEX` | 中英文 reset 触发词 | 退出 gate 的提示词 |
-
-项目特定规则应写在目标项目自己的说明文件中。不要把私人路径、凭据或本地数据目录硬编码进公开脚本。
-
-## 使用方式
-
-可以这样要求 Agent：
-
-```text
-Use /iterative-improve to improve the report generation pipeline.
-Goal: reduce noisy output and improve verification.
-Max rounds: 3.
-```
-
-中文示例：
-
-```text
-使用 /iterative-improve 对数据处理模块做循环优化。
-目标：提升稳定性和可验证性。
-最多 3 轮。
-```
-
-或者：
-
-```text
-开始循环优化：认证模块稳定性改进
-目标：遵守项目规则，每轮写 plan 和 result，最多 2 轮。
-```
-
-## 项目约定
-
-这个 Skill 不要求固定目录结构。它会要求 Agent 先检查当前项目已有规则，例如：
-
-- `AGENTS.md`、`CLAUDE.md` 或其他 Agent 指令。
-- 项目中的 hooks、gate 或 wrapper 脚本。
-- 已有的 `plans/`、`results/` 或报告目录。
-- README、CI、包配置或脚本中的测试命令。
-- Git worktree、分支、提交、合并、清理规则。
-
-如果项目本地规则比这个 Skill 更严格，应优先遵守项目本地规则。
-
-## Gate 机制
-
-有些项目会通过 hooks 或 wrapper 脚本强制执行流程 gate。这个 Skill 会要求 Agent 尊重这些 gate，而不是绕过它们。
-
-常见 gate 行为包括：
-
-- 没有计划前不允许改代码。
-- 没有成功退出 Plan Mode 前不允许执行。
-- 计划批准后不允许在主 worktree 直接改代码。
-- 没有验证和结果文件前不允许合并或清理。
-
-如果项目没有 gate，Agent 也应该手动遵守同样的纪律。
-
-## 仓库结构
+## 关键文件
 
 ```text
 iterative-improve/
 ├── SKILL.md                       # Agent Skill 主体
+├── AGENTS.md                      # 给 coding agent 的技术参考
 ├── README.md                      # 英文说明
 ├── README.zh-CN.md                # 中文说明
 ├── scripts/
@@ -190,9 +127,13 @@ iterative-improve/
 └── LICENSE                        # MIT License
 ```
 
+## 技术参考
+
+见 [AGENTS.md](AGENTS.md)，其中包含 hook 配置、安装细节、环境变量、状态文件、计划要求和排错说明。
+
 ## 隐私
 
-这个仓库面向公开发布。Skill 不包含私人项目路径、凭据、API key、数据文件或个人运行状态。发布前仍建议扫描本地路径和敏感信息。
+这个仓库面向公开发布，不包含私人项目路径、凭据、API key、数据文件或个人运行状态。发布前仍建议扫描本地路径和敏感信息。
 
 ## 许可证
 

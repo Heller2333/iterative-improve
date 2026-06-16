@@ -2,135 +2,25 @@
 
 English | [中文](README.zh-CN.md)
 
-`iterative-improve` is a generic, gate-aware Agent Skill for iterative coding workflows. It helps an agent discover local project rules, plan one round at a time, isolate risky work in a worktree, execute, verify, review, record results, and safely continue or stop.
+A guarded Agent Skill for iterative coding work: plan first, isolate risky changes, verify with real commands, record results, commit deliberately, merge, clean up, and only then continue.
 
-It is intentionally repository-agnostic: it does not assume a specific project, metric, branch name, directory layout, or tool vendor.
+It is repository-agnostic. Use it for refactors, migrations, strategy experiments, report pipelines, data workflows, quality loops, and any task where an AI coding agent should improve in controlled rounds instead of drifting.
 
-## What It Does
+## Quick Start
 
-The skill guides an agent through a controlled loop:
+Tell your AI coding agent:
 
-1. Discover local project rules and gates.
-2. Write a plan before mutating files.
-3. Use project-required isolation, such as a Git worktree.
-4. Implement only the current round's planned change.
-5. Verify with real commands and real outputs.
-6. Review the result and record findings.
-7. Decide whether to continue, pivot, or stop.
+> "Clone https://github.com/Heller2333/iterative-improve into this project. Install the iterative-improve skill for my coding agent and set up the optional Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works."
 
-It is useful for refactors, migrations, strategy experiments, report pipelines, data workflows, quality loops, and other tasks where "just keep fixing" tends to produce messy agent behavior.
+The agent will:
 
-## Installation
+1. Clone this repository into the current project, usually as `.iterative-improve/`.
+2. Install `SKILL.md` into your agent's skills directory.
+3. Copy `scripts/claude-code-gate.sh` into `.claude/hooks/`.
+4. Merge the hook configuration into `.claude/settings.json`.
+5. Keep project-specific rules in your project's own instructions.
 
-### Codex
-
-Clone this repository directly into your Codex skills directory:
-
-```bash
-mkdir -p ~/.codex/skills
-git clone https://github.com/Heller2333/iterative-improve.git ~/.codex/skills/iterative-improve
-```
-
-Update later with:
-
-```bash
-git -C ~/.codex/skills/iterative-improve pull
-```
-
-This installs the Markdown skill. The optional shell gate script remains available inside the cloned repository under `scripts/`.
-
-### Claude Code
-
-Clone this repository into your Claude Code skills directory:
-
-```bash
-mkdir -p ~/.claude/skills
-git clone https://github.com/Heller2333/iterative-improve.git ~/.claude/skills/iterative-improve
-```
-
-Update later with:
-
-```bash
-git -C ~/.claude/skills/iterative-improve pull
-```
-
-This installs the Markdown skill. To enforce the workflow with Claude Code hooks, see [Optional Claude Code Gate](#optional-claude-code-gate).
-
-### Manual Copy
-
-Copy the repository folder into any skills directory supported by your agent:
-
-```bash
-cp -R iterative-improve ~/.codex/skills/iterative-improve
-```
-
-## Optional Claude Code Gate
-
-The skill can be used as Markdown-only guidance. If you want tool-call enforcement, this repository also ships a generic Claude Code hook template:
-
-```text
-scripts/claude-code-gate.sh
-```
-
-Install it inside a project:
-
-```bash
-mkdir -p .claude/hooks
-cp ~/.codex/skills/iterative-improve/scripts/claude-code-gate.sh .claude/hooks/iterative-improve-gate.sh
-chmod +x .claude/hooks/iterative-improve-gate.sh
-```
-
-Add it to the project's `.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash|Edit|Write|ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/iterative-improve-gate.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Reset the gate when you need to cancel a loop:
-
-```bash
-bash .claude/hooks/iterative-improve-gate.sh --reset
-```
-
-The script is configurable with environment variables:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `ITERATIVE_IMPROVE_PLAN_DIRS` | `plans reports/plans code/reports/plans` | Directories searched for plan files |
-| `ITERATIVE_IMPROVE_WORKTREE_PREFIX` | `<repo-name>-opt-` | Allowed worktree path prefix |
-| `ITERATIVE_IMPROVE_BRANCH_REGEX` | `opt/*`, `feature/opt-*`, `codex/opt-*` | Allowed optimization branch patterns |
-| `ITERATIVE_IMPROVE_TRIGGER_REGEX` | English and Chinese iterative-improve trigger phrases | Prompts that activate the gate |
-| `ITERATIVE_IMPROVE_RESET_REGEX` | English and Chinese reset phrases | Prompts that reset the gate |
-
-Keep project-specific policy in the target project's instructions. Do not hard-code private paths, credentials, or local data directories into the public script.
-
-## Usage
-
-Ask your agent to use the skill:
+After that, start a loop with:
 
 ```text
 Use /iterative-improve to improve the report generation pipeline.
@@ -138,14 +28,7 @@ Goal: reduce noisy output and improve verification.
 Max rounds: 3.
 ```
 
-Or:
-
-```text
-Start an iterative improvement loop for the authentication module.
-Use the existing project rules, write one plan and one result per round, and stop after 2 rounds or when review findings are stable.
-```
-
-For Chinese prompts:
+Chinese prompts also work:
 
 ```text
 使用 /iterative-improve 对数据处理模块做循环优化。
@@ -153,36 +36,90 @@ For Chinese prompts:
 最多 3 轮。
 ```
 
-## Expected Project Conventions
+## How It Works
 
-The skill does not require a specific project layout. It asks the agent to inspect the local repository first and follow whatever it finds, such as:
+```text
+Trigger prompt
+  -> read project rules
+  -> plan one round
+  -> approve/exit planning
+  -> create isolated worktree or branch
+  -> implement the planned change
+  -> verify with real commands
+  -> write result artifact
+  -> commit, merge, clean up
+  -> decide whether to continue
+```
 
-- `AGENTS.md`, `CLAUDE.md`, or other agent instructions.
-- Project-specific hooks or gates.
-- Existing `plans/`, `results/`, or report directories.
-- Test commands in README, CI, package metadata, or scripts.
-- Git worktree, branch, commit, merge, and cleanup rules.
+- `SKILL.md` teaches the agent the iterative workflow.
+- `scripts/claude-code-gate.sh` is an optional Claude Code hook that blocks common drift before tool calls run.
+- The gate stores temporary state under `.scratch/agent-state/` in the target project.
+- The gate is generic and configurable with environment variables; project-specific policy should live in the target project's own instructions.
 
-If a project has stricter local rules than this skill, the local rules win.
+## What The Gate Enforces
 
-## Gate-Aware Behavior
+When the optional Claude Code hook is installed, it can block:
 
-Some projects enforce workflow gates through hooks or wrapper scripts. This skill tells the agent to respect those gates rather than bypassing them.
+- Code edits before a plan exists.
+- Execution before the plan is approved.
+- Editing in the main worktree after approval.
+- Unsafe merge or cleanup commands outside allowed optimization branch/worktree patterns.
+- Exiting Plan Mode when the plan is missing key items such as goal, round, worktree or branch isolation, verification, result artifact, commit, merge, and cleanup.
 
-Examples of gate behavior:
+The Markdown skill can still be used without the hook. In that case, the agent follows the same process by instruction rather than enforcement.
 
-- No code edits before a plan exists.
-- No execution until Plan Mode has been exited successfully.
-- No edits in the main worktree after a plan is approved.
-- No merge or cleanup until verification and result files exist.
+## Manual Installation
 
-If no gate exists, the agent should manually follow the same discipline.
+### Codex
 
-## Repository Structure
+```bash
+mkdir -p ~/.codex/skills
+git clone https://github.com/Heller2333/iterative-improve.git ~/.codex/skills/iterative-improve
+```
+
+Update later:
+
+```bash
+git -C ~/.codex/skills/iterative-improve pull
+```
+
+### Claude Code
+
+```bash
+mkdir -p ~/.claude/skills
+git clone https://github.com/Heller2333/iterative-improve.git ~/.claude/skills/iterative-improve
+```
+
+Update later:
+
+```bash
+git -C ~/.claude/skills/iterative-improve pull
+```
+
+### Optional Claude Code Hook
+
+From a target project:
+
+```bash
+mkdir -p .claude/hooks
+cp ~/.codex/skills/iterative-improve/scripts/claude-code-gate.sh .claude/hooks/iterative-improve-gate.sh
+chmod +x .claude/hooks/iterative-improve-gate.sh
+```
+
+Then add the hooks shown in [AGENTS.md](AGENTS.md) to `.claude/settings.json`.
+
+Reset the gate when you need to cancel a loop:
+
+```bash
+bash .claude/hooks/iterative-improve-gate.sh --reset
+```
+
+## Key Files
 
 ```text
 iterative-improve/
-├── SKILL.md                       # The actual Agent Skill
+├── SKILL.md                       # Agent Skill body
+├── AGENTS.md                      # Technical reference for coding agents
 ├── README.md                      # English documentation
 ├── README.zh-CN.md                # Chinese documentation
 ├── scripts/
@@ -190,9 +127,13 @@ iterative-improve/
 └── LICENSE                        # MIT License
 ```
 
+## Technical Reference
+
+See [AGENTS.md](AGENTS.md) for hook configuration, installation details, environment variables, state files, plan requirements, and troubleshooting notes.
+
 ## Privacy
 
-This repository is designed for public use. The skill does not include private project paths, credentials, API keys, data files, or personal workflow state. Before publishing changes, scan for local paths and secrets.
+This repository is designed for public use. It does not include private project paths, credentials, API keys, data files, or personal workflow state. Before publishing changes, scan for local paths and secrets.
 
 ## License
 

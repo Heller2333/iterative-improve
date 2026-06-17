@@ -80,8 +80,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 Pin a release, branch, or commit:
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.2 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.2/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.3 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.3/install.sh | bash
 ```
 
 Do not add automatic silent updates. The gate changes execution behavior, so updates must be explicit.
@@ -121,6 +121,14 @@ Merge this into the target project's `.claude/settings.json`. Preserve any exist
 If the project already has `UserPromptSubmit` or `PreToolUse` hooks, append this command to the relevant hook arrays rather than replacing existing commands.
 
 The hook registration is mandatory for Claude Code usage. Without it, `/iterative-improve` may be used only to inspect the repository and explain the missing setup; it must not proceed to code edits, experiments, commits, merges, or cleanup.
+
+## Optional PermissionRequest Auto-Approve
+
+Do not bundle, install, copy, vendor, or reimplement third-party `PermissionRequest` auto-approve hooks in this project. Auto-approving Claude Code's `ExitPlanMode` permission dialog is a companion integration, not part of the required iterative-improve gate.
+
+The installer must manage only this project's `UserPromptSubmit` and `PreToolUse` hook registrations. If a target project already has a `PermissionRequest` hook, preserve it. If users choose a third-party auto-approve hook, tell them to install it separately and keep its license and attribution intact.
+
+When both hook types are present, `PreToolUse` remains the source of iterative-improve validation. `PermissionRequest` may approve Claude Code's dialog only after the gate has allowed `ExitPlanMode`.
 
 ## Configurable Environment Variables
 

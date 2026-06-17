@@ -48,6 +48,12 @@ When the gate is active:
 
 If the gate cannot be activated, do not proceed with the loop. You may inspect files and propose installation steps, but do not edit project code, run experiments, commit, merge, or clean up as part of an iterative-improvement round.
 
+### Optional Auto-Approve Hooks
+
+`PermissionRequest` auto-approve hooks for `ExitPlanMode` are optional companion tools, not part of this skill's required gate. Do not install, vendor, or recreate third-party auto-approve hooks as part of `/iterative-improve`.
+
+This skill's enforcement must come from the project gate, normally `UserPromptSubmit` and `PreToolUse`. If a separate auto-approve hook is already installed, treat UI messages such as `Allowed by PermissionRequest hook` as approval of Claude Code's dialog only; the iterative-improve plan is valid only if the gate did not deny `ExitPlanMode`.
+
 ### Exiting A Gate
 
 Use only documented exit paths. Typical examples:

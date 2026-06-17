@@ -94,6 +94,19 @@ The default public naming policy uses `improve/*` branches and `<repo>-improve-*
 
 If the gate cannot be installed or activated, the agent may inspect files and explain the missing setup, but must not continue into iterative-improvement implementation.
 
+## Optional Auto-Approve Hooks
+
+Auto-approving Claude Code's `ExitPlanMode` permission dialog is intentionally not bundled. This project focuses on enforcement: validating the plan, blocking unsafe tools, requiring worktree or branch isolation, and preserving result artifacts.
+
+If you want automatic approval of the Claude Code plan dialog, install a separate `PermissionRequest` hook such as [yigitkonur/auto-approve-claude-plan](https://github.com/yigitkonur/auto-approve-claude-plan) and keep its license and attribution intact. The iterative-improve installer does not install, copy, vendor, or recreate that hook.
+
+When both are installed, the roles are:
+
+- iterative-improve `PreToolUse`: validates or denies the iterative-improve plan.
+- Optional `PermissionRequest` hook: approves Claude Code's own plan-mode dialog after the gate has allowed it.
+
+Seeing `Allowed by PermissionRequest hook` means the optional approval hook ran. It does not replace iterative-improve gate validation.
+
 ## Manual Installation
 
 Installing a skill directory only makes the instructions discoverable. The project-level gate hook is still required before `/iterative-improve` may implement changes.
@@ -168,8 +181,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 Pin a specific release or branch:
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.2 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.2/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.3 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.3/install.sh | bash
 ```
 
 ## Key Files

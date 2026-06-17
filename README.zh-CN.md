@@ -94,6 +94,19 @@ gate 会阻断：
 
 如果 gate 不能安装或激活，Agent 可以检查文件并说明缺少的设置，但不能继续进入循环优化实施阶段。
 
+## 可选自动批准 Hook
+
+自动批准 Claude Code 的 `ExitPlanMode` 权限弹窗不是本项目内置功能。本项目专注于强制约束：校验计划、阻断不安全工具、要求 worktree 或分支隔离，并保留结果文件。
+
+如果你希望 Claude Code 的计划弹窗被自动批准，可以单独安装 `PermissionRequest` hook，例如 [yigitkonur/auto-approve-claude-plan](https://github.com/yigitkonur/auto-approve-claude-plan)，并保留它自己的 license 和署名。本项目的 installer 不会安装、复制、内置或重写这个 hook。
+
+两者同时存在时，职责边界是：
+
+- iterative-improve 的 `PreToolUse`：校验或拒绝循环优化计划。
+- 可选的 `PermissionRequest` hook：在 gate 放行后，批准 Claude Code 自己的计划模式弹窗。
+
+看到 `Allowed by PermissionRequest hook` 只表示可选批准 hook 运行了。它不能替代 iterative-improve gate 校验。
+
 ## 手动安装
 
 安装 skill 目录只会让 agent 能发现这套说明。真正执行 `/iterative-improve` 前，项目级 gate hook 仍然必须安装。
@@ -168,8 +181,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 固定使用某个 release 或分支：
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.2 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.2/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.3 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.3/install.sh | bash
 ```
 
 ## 关键文件

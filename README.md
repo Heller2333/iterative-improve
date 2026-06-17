@@ -1,10 +1,10 @@
-# iterative-improve
+# IIG: Iterative Improvement Gate for Claude Code
 
 English | [中文](README.zh-CN.md)
 
-A gate-enforced Agent Skill for iterative coding work: activate a gate, plan first, isolate risky changes, verify with real commands, record results, commit deliberately, merge, clean up, and only then continue.
+IIG is a gate-enforced Agent Skill for iterative coding work: activate a gate, plan first, isolate risky changes, verify with real commands, record results, commit deliberately, merge, clean up, and only then continue.
 
-It is repository-agnostic. Use it for refactors, migrations, strategy experiments, report pipelines, data workflows, quality loops, and any task where an AI coding agent should improve in controlled rounds instead of drifting.
+The repository and skill command are still named `iterative-improve`. IIG is repository-agnostic: use it for refactors, migrations, strategy experiments, report pipelines, data workflows, quality loops, and any task where an AI coding agent should improve in controlled rounds instead of drifting.
 
 ## Quick Start
 

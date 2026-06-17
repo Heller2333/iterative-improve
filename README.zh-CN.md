@@ -33,6 +33,18 @@ git clone https://github.com/Heller2333/iterative-improve.git /tmp/iterative-imp
 bash /tmp/iterative-improve/install.sh
 ```
 
+后续检查更新：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --check
+```
+
+更新项目 hook：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --update
+```
+
 之后可以这样启动循环：
 
 ```text
@@ -133,6 +145,7 @@ installer 会：
 - 写入前备份 `.claude/settings.json`。
 - 用 `jq` 非破坏性合并 hook 配置。
 - 安装 `.claude/hooks/iterative-improve-gate.sh`。
+- 将安装元数据写入 `.claude/iterative-improve.json`。
 - 按需追加 `.scratch/agent-state/` 到 `.gitignore`。
 
 也可以手动安装 hook：
@@ -157,6 +170,13 @@ bash .claude/hooks/iterative-improve-gate.sh --reset
 curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --uninstall
 ```
 
+固定使用某个 release 或分支：
+
+```bash
+ITERATIVE_IMPROVE_REF=v0.3.0 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.0/install.sh | bash
+```
+
 ## 关键文件
 
 ```text
@@ -165,6 +185,7 @@ iterative-improve/
 ├── AGENTS.md                      # 给 coding agent 的技术参考
 ├── README.md                      # 英文说明
 ├── README.zh-CN.md                # 中文说明
+├── VERSION                        # 当前发布版本
 ├── install.sh                     # 项目级安装/卸载脚本
 ├── scripts/
 │   └── claude-code-gate.sh        # 必需 Claude Code gate hook 模板

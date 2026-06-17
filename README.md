@@ -33,6 +33,18 @@ git clone https://github.com/Heller2333/iterative-improve.git /tmp/iterative-imp
 bash /tmp/iterative-improve/install.sh
 ```
 
+Check for updates later:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --check
+```
+
+Update the project hook:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --update
+```
+
 After that, start a loop with:
 
 ```text
@@ -133,6 +145,7 @@ The installer:
 - Backs up `.claude/settings.json` before writing.
 - Non-destructively merges hook configuration with `jq`.
 - Installs `.claude/hooks/iterative-improve-gate.sh`.
+- Writes install metadata to `.claude/iterative-improve.json`.
 - Appends `.scratch/agent-state/` to `.gitignore` if needed.
 
 Manual hook installation is also possible:
@@ -157,6 +170,13 @@ Uninstall the project hook:
 curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --uninstall
 ```
 
+Pin a specific release or branch:
+
+```bash
+ITERATIVE_IMPROVE_REF=v0.3.0 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.0/install.sh | bash
+```
+
 ## Key Files
 
 ```text
@@ -165,6 +185,7 @@ iterative-improve/
 ├── AGENTS.md                      # Technical reference for coding agents
 ├── README.md                      # English documentation
 ├── README.zh-CN.md                # Chinese documentation
+├── VERSION                        # Current release version
 ├── install.sh                     # Project-level installer/uninstaller
 ├── scripts/
 │   └── claude-code-gate.sh        # Required Claude Code gate hook template

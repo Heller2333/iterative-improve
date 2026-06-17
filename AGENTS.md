@@ -30,6 +30,7 @@ The installer modifies only the current project:
 
 - Creates `.claude/hooks/iterative-improve-gate.sh`.
 - Backs up and merges `.claude/settings.json`.
+- Writes `.claude/iterative-improve.json` install metadata.
 - Appends `.scratch/agent-state/` to `.gitignore` if needed.
 - Stops if `jq` is missing.
 - Stops if `.claude/settings.json` is invalid JSON.
@@ -55,6 +56,35 @@ git clone https://github.com/Heller2333/iterative-improve.git ~/.claude/skills/i
 Do not mark project setup complete until the project-level gate hook is installed and registered.
 
 If the gate cannot be installed, report the blocker and do not run iterative-improvement implementation steps.
+
+## Update Commands
+
+Check for updates:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --check
+```
+
+Update the project hook:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --update
+```
+
+Show installer and installed versions:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/install.sh | bash -s -- --version
+```
+
+Pin a release, branch, or commit:
+
+```bash
+ITERATIVE_IMPROVE_REF=v0.3.0 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.0/install.sh | bash
+```
+
+Do not add automatic silent updates. The gate changes execution behavior, so updates must be explicit.
 
 ## Claude Code Hook Configuration
 
@@ -126,6 +156,14 @@ The hook writes temporary state to:
 ```
 
 These files are local workflow state. They should normally be gitignored by the target project.
+
+The installer writes version metadata to:
+
+```text
+.claude/iterative-improve.json
+```
+
+This file records the repository, ref, raw URL, installed version, install time, hook path, and settings path.
 
 Reset the gate:
 

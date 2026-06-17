@@ -54,14 +54,6 @@ Goal: reduce noisy output and improve verification.
 Max rounds: 3.
 ```
 
-Chinese prompts also work:
-
-```text
-使用 /iterative-improve 对数据处理模块做循环优化。
-目标：提升稳定性和可验证性。
-最多 3 轮。
-```
-
 ## How It Works
 
 ```text

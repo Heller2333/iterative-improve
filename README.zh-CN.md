@@ -8,11 +8,11 @@
 
 ## 快速开始
 
-告诉你的 AI coding agent：
+告诉你的 AI 编程代理：
 
-> “Install https://github.com/Heller2333/iterative-improve in this project. Set up the required Claude Code gate hooks so iterative-improve requests must plan first, use worktree or branch isolation, verify changes, write result artifacts, commit, merge, and clean up. Read the AGENTS.md for the full technical reference on how everything works.”
+> “在这个项目中安装 https://github.com/Heller2333/iterative-improve。设置必需的 Claude Code gate hooks，让 iterative-improve 请求必须先写计划、使用 worktree 或分支隔离、验证改动、写结果文件、提交、合并并清理。阅读 AGENTS.md，了解完整技术参考。”
 
-Agent 会执行：
+代理会执行：
 
 1. 在目标项目根目录运行 `install.sh`。
 2. 将 `scripts/claude-code-gate.sh` 复制到 `.claude/hooks/`。
@@ -47,14 +47,6 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 ```
 
 之后可以这样启动循环：
-
-```text
-Use /iterative-improve to improve the report generation pipeline.
-Goal: reduce noisy output and improve verification.
-Max rounds: 3.
-```
-
-中文提示也可以：
 
 ```text
 使用 /iterative-improve 对数据处理模块做循环优化。

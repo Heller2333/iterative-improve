@@ -25,6 +25,28 @@ branch_regex="${ITERATIVE_IMPROVE_BRANCH_REGEX:-improve/[[:alnum:]_./-]+|iter/[[
 trigger_regex="${ITERATIVE_IMPROVE_TRIGGER_REGEX:-/iterative-improve|开始循环优化|按[[:space:]]*反馈优化|按[[:space:]]*Codex[[:space:]]*反馈优化|循环优化|迭代优化|持续改进|automatic iterative improvement|iterative improvement loop}"
 reset_regex="${ITERATIVE_IMPROVE_RESET_REGEX:-退出[[:space:]]*(gate|Gate|循环优化|迭代优化)|关闭[[:space:]]*(gate|Gate|循环优化|迭代优化)|取消循环优化|停止循环优化|重置[[:space:]]*(gate|Gate|循环优化)|reset[[:space:]]+(gate|iterative[[:space:]]+improve|optimization[[:space:]]+gate)}"
 
+first_word() {
+  printf '%s\n' "$1" | awk '{print $1}'
+}
+
+primary_plan_dir="$(first_word "$plan_dirs")"
+primary_result_dir="$(first_word "$result_dirs")"
+
+artifact_dir_path() {
+  case "$1" in
+    /*)
+      printf '%s\n' "$1"
+      ;;
+    *)
+      printf '%s\n' "$project_root/$1"
+      ;;
+  esac
+}
+
+ensure_artifact_dirs() {
+  mkdir -p "$(artifact_dir_path "$primary_plan_dir")" "$(artifact_dir_path "$primary_result_dir")"
+}
+
 state_dir_for_root() {
   local root="$1"
   if [ -n "${ITERATIVE_IMPROVE_STATE_DIR:-}" ]; then
@@ -239,6 +261,15 @@ is_readonly_bash() {
   esac
 }
 
+is_artifact_dir_setup_command() {
+  local cmd plan_dir result_dir
+  cmd=$(printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  plan_dir=$(regex_escape "$primary_plan_dir")
+  result_dir=$(regex_escape "$primary_result_dir")
+
+  printf '%s' "$cmd" | grep -Eq '^mkdir[[:space:]]+-p[[:space:]]+('"$plan_dir"'|'"$result_dir"')([[:space:]]+('"$plan_dir"'|'"$result_dir"'))*[[:space:]]*$'
+}
+
 normalize_gate_command() {
   printf '%s' "$1" \
     | sed 's/[[:space:]]*2>&1//g' \
@@ -350,8 +381,9 @@ if [ "$event" = "UserPromptSubmit" ]; then
   fi
 
   if printf '%s' "$prompt" | grep -Eiq "$trigger_regex"; then
+    ensure_artifact_dirs
     write_state "loop_pending_plan" "$session_id" "$prompt"
-    user_context "iterative-improve gate" "An iterative-improve request was detected. Before mutating files, enter/perform a read-only planning phase, inspect local project rules, write a plan file, and pass ExitPlanMode if available. The plan must include goal, round, worktree/branch isolation, verification, a concrete result file path under a configured result directory, commit, merge, and cleanup. For round 2 and later, the plan must analyze the previous result file and cite its path."
+    user_context "iterative-improve gate" "An iterative-improve request was detected. The gate has ensured the primary artifact directories exist: $primary_plan_dir/ and $primary_result_dir/. Before mutating files, enter/perform a read-only planning phase, inspect local project rules, write a Markdown plan file under $primary_plan_dir/, and pass ExitPlanMode if available. Do not use the UI task plan as the gate plan. The plan must include goal, round, worktree/branch isolation, verification, one concrete future result file path under $primary_result_dir/, commit, merge, and cleanup. For round 2 and later, the plan must analyze the previous result file and cite its path."
   fi
 
   exit 0
@@ -405,7 +437,7 @@ if [ "$event" = "PreToolUse" ]; then
         exit 0
         ;;
       Bash)
-        if is_readonly_bash "$command"; then
+        if is_readonly_bash "$command" || is_artifact_dir_setup_command "$command"; then
           exit 0
         fi
         deny_pretool "iterative-improve gate: before plan approval, only read-only exploration commands are allowed."

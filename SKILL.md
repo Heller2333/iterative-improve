@@ -20,6 +20,8 @@ Before the first round, inspect local sources of truth:
 
 State assumptions only after this inspection. If the repo has stricter rules than this skill, follow the repo.
 
+Default artifact directories are `plans/` and `results/` at the project root. If they are missing and the gate/installer did not already create them, create only those directories before writing the gate plan. Use `plans/*.md` for plan files and put the planned future result path under `results/*.md` unless project configuration explicitly overrides the gate directories.
+
 ## 1. Start Mandatory Gate
 
 Using this skill requires a gate. Treat the gate as part of the skill contract, not an optional add-on.
@@ -69,6 +71,7 @@ Planning rules:
 - Plan only the next round. Do not pre-plan all future rounds.
 - Choose one primary bottleneck for the round.
 - Prefer structural improvements over blind parameter tuning unless the user asked for tuning.
+- Write the actual gate plan as a Markdown file under `plans/` by default. Do not rely on an internal UI task plan or checklist as the gate plan.
 
 Each plan file must include:
 
@@ -81,7 +84,7 @@ Each plan file must include:
 - A concrete result file path under the project's result directory.
 - Execution logistics required by the project: worktree, branch, commit, merge, cleanup, or deployment steps.
 
-The gate must validate the plan before implementation. Make the plan satisfy the active gate exactly. At ExitPlanMode, the plan file must exist in a configured plan directory; the planned result file path must be named, but the result file does not need to exist yet.
+The gate must validate the plan before implementation. Make the plan satisfy the active gate exactly. At ExitPlanMode, the plan file must exist in a configured plan directory; the planned result file path must be named under a configured result directory, but the result file does not need to exist yet.
 
 ## 3. Worktree And Branch Isolation
 
@@ -132,7 +135,7 @@ Do not invent a universal metric. Use the project's domain metrics when they exi
 
 ## 6. Result File
 
-Each round writes exactly one result file in the discovered results directory.
+Each round writes exactly one result file in the discovered results directory. Use `results/` by default unless project configuration explicitly overrides it.
 
 Include:
 

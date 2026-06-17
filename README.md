@@ -17,8 +17,9 @@ The agent will:
 1. Run `install.sh` from the target project root.
 2. Copy `scripts/claude-code-gate.sh` into `.claude/hooks/`.
 3. Merge the required hook configuration into `.claude/settings.json`.
-4. Add `.scratch/agent-state/` to `.gitignore`.
-5. Refuse to run `/iterative-improve` implementation steps if the gate cannot be installed or activated.
+4. Create `plans/` and `results/` at the project root for gate artifacts.
+5. Add `.scratch/agent-state/` to `.gitignore`.
+6. Refuse to run `/iterative-improve` implementation steps if the gate cannot be installed or activated.
 
 Direct install from a target project:
 
@@ -81,6 +82,7 @@ Trigger prompt
 - `SKILL.md` teaches the agent the iterative workflow.
 - `scripts/claude-code-gate.sh` is the required Claude Code gate hook for this workflow.
 - The gate stores temporary state under `.scratch/agent-state/` in the target project.
+- The gate uses `plans/` for plan files and `results/` for result files by default. The installer creates both directories.
 - The gate is generic and configurable with environment variables; project-specific policy should live in the target project's own instructions.
 
 ## Mandatory Gate Contract
@@ -145,6 +147,7 @@ The installer:
 - Backs up `.claude/settings.json` before writing.
 - Non-destructively merges hook configuration with `jq`.
 - Installs `.claude/hooks/iterative-improve-gate.sh`.
+- Creates `plans/` and `results/` in the current project.
 - Writes install metadata to `.claude/iterative-improve.json`.
 - Appends `.scratch/agent-state/` to `.gitignore` if needed.
 
@@ -173,8 +176,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 Pin a specific release or branch:
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.1 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.1/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.2 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.2/install.sh | bash
 ```
 
 ## Key Files
@@ -191,6 +194,8 @@ iterative-improve/
 │   └── claude-code-gate.sh        # Required Claude Code gate hook template
 └── LICENSE                        # MIT License
 ```
+
+After installation, the target project gets `plans/` and `results/` directories for iterative-improve artifacts.
 
 ## Technical Reference
 

@@ -17,8 +17,9 @@ Agent 会执行：
 1. 在目标项目根目录运行 `install.sh`。
 2. 将 `scripts/claude-code-gate.sh` 复制到 `.claude/hooks/`。
 3. 把必需的 hook 配置合并进 `.claude/settings.json`。
-4. 将 `.scratch/agent-state/` 加入 `.gitignore`。
-5. 如果 gate 不能安装或激活，就拒绝继续执行 `/iterative-improve` 的实施步骤。
+4. 在项目根目录创建 `plans/` 和 `results/`，用于 gate artifact。
+5. 将 `.scratch/agent-state/` 加入 `.gitignore`。
+6. 如果 gate 不能安装或激活，就拒绝继续执行 `/iterative-improve` 的实施步骤。
 
 在目标项目中直接安装：
 
@@ -81,6 +82,7 @@ Max rounds: 3.
 - `SKILL.md` 教 Agent 按循环优化流程工作。
 - `scripts/claude-code-gate.sh` 是这个流程在 Claude Code 中必需的 gate hook。
 - gate 的临时状态保存在目标项目的 `.scratch/agent-state/` 下。
+- gate 默认使用 `plans/` 写计划文件，使用 `results/` 写结果文件。installer 会创建这两个目录。
 - gate 是通用脚本，可通过环境变量配置；项目特定规则应写在目标项目自己的说明文件中。
 
 ## 强制 Gate 合约
@@ -145,6 +147,7 @@ installer 会：
 - 写入前备份 `.claude/settings.json`。
 - 用 `jq` 非破坏性合并 hook 配置。
 - 安装 `.claude/hooks/iterative-improve-gate.sh`。
+- 在当前项目中创建 `plans/` 和 `results/`。
 - 将安装元数据写入 `.claude/iterative-improve.json`。
 - 按需追加 `.scratch/agent-state/` 到 `.gitignore`。
 
@@ -173,8 +176,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 固定使用某个 release 或分支：
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.1 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.1/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.2 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.2/install.sh | bash
 ```
 
 ## 关键文件
@@ -191,6 +194,8 @@ iterative-improve/
 │   └── claude-code-gate.sh        # 必需 Claude Code gate hook 模板
 └── LICENSE                        # MIT License
 ```
+
+安装后，目标项目会得到 `plans/` 和 `results/` 目录，用来保存 iterative-improve artifacts。
 
 ## 技术参考
 

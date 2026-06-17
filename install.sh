@@ -14,6 +14,8 @@ metadata_file="$claude_dir/iterative-improve.json"
 hook_file="$hooks_dir/iterative-improve-gate.sh"
 hook_command=' "$CLAUDE_PROJECT_DIR"/.claude/hooks/iterative-improve-gate.sh'
 hook_command="${hook_command# }"
+plan_dir="$project_root/plans"
+result_dir="$project_root/results"
 mode="install"
 script_dir=""
 
@@ -181,6 +183,10 @@ append_gitignore() {
   } >> "$gitignore"
 }
 
+ensure_artifact_dirs() {
+  mkdir -p "$plan_dir" "$result_dir"
+}
+
 write_metadata() {
   local version="$1"
   local tmp
@@ -216,6 +222,7 @@ install_gate() {
   write_default_settings_if_missing
   install_hook_file
   merge_settings
+  ensure_artifact_dirs
   append_gitignore
   version=$(source_version)
   write_metadata "$version"

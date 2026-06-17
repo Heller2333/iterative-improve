@@ -80,8 +80,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 Pin a release, branch, or commit:
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.1 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.1/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.2 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.2/install.sh | bash
 ```
 
 Do not add automatic silent updates. The gate changes execution behavior, so updates must be explicit.
@@ -164,6 +164,8 @@ The installer writes version metadata to:
 ```
 
 This file records the repository, ref, raw URL, installed version, install time, hook path, and settings path.
+
+The installer and gate create the primary artifact directories, `plans/` and `results/`, by default. Agents should write the actual gate plan to `plans/*.md` and name the future result artifact as `results/*.md` unless project configuration overrides `ITERATIVE_IMPROVE_PLAN_DIRS` or `ITERATIVE_IMPROVE_RESULT_DIRS`.
 
 Reset the gate:
 

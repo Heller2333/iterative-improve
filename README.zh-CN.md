@@ -55,6 +55,7 @@ Max rounds: 3.
 触发提示
   -> 读取项目规则
   -> 激活必需 gate
+  -> 分析上一轮结果，首轮除外
   -> 规划一轮任务
   -> 批准计划/退出计划阶段
   -> 创建隔离 worktree 或分支
@@ -81,6 +82,7 @@ gate 会阻断：
 - 计划批准后仍在主 worktree 直接编辑。
 - 在非允许的优化分支或 worktree 模式下执行 merge/cleanup。
 - 计划缺少目标、轮次、worktree 或分支隔离、验证、具体结果文件路径、提交、合并、清理等关键项时退出 Plan Mode。
+- 第 2 轮及以后，如果计划没有分析并引用上一轮 result 文件，则阻止退出 Plan Mode。
 
 公开默认命名策略使用 `improve/*` 分支和 `<repo>-improve-*` worktree，同时兼容旧的 `opt/*` 分支和 `<repo>-opt-*` worktree。
 

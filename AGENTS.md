@@ -145,6 +145,8 @@ When `/iterative-improve` is active, `ExitPlanMode` must provide or point to a p
 
 - Goal or objective.
 - Round or iteration.
+- For round 1, an explicit statement that no previous result exists.
+- For round 2 and later, a `Previous Result Analysis` section that cites the previous result file path and explains how it drives the next plan.
 - Worktree or branch isolation.
 - Verification or tests.
 - A concrete result file path under one configured result directory.
@@ -154,7 +156,7 @@ When `/iterative-improve` is active, `ExitPlanMode` must provide or point to a p
 
 The hook accepts English or Chinese wording for these concepts.
 
-At `ExitPlanMode`, the hook checks that the plan file exists in a configured plan directory and that the plan names the future result file path. It does not require the result file to exist yet.
+At `ExitPlanMode`, the hook checks that the plan file exists in a configured plan directory and that the plan names the future result file path. It does not require the future result file to exist yet. For round 2 and later, the hook also requires previous-result analysis and a previous result file path.
 
 If no active gate is present to enforce these requirements, stop before implementation.
 
@@ -166,16 +168,17 @@ The agent should run one round at a time:
 2. Verify that the gate hook is installed and registered, or install it before continuing.
 3. Activate the gate through the trigger prompt or project entrypoint.
 4. Read project instructions such as `AGENTS.md`, `CLAUDE.md`, README files, CI config, and scripts.
-5. Write a plan file in one of the configured plan directories.
-6. Exit planning only when the gate accepts a plan containing all required items.
-7. Create and enter the planned worktree or branch.
-8. Implement only the planned round.
-9. Verify with real commands and capture outcomes.
-10. Write a result artifact.
-11. Commit the round.
-12. Merge back according to project rules.
-13. Clean up the worktree or branch.
-14. Reset gate state or start the next round intentionally.
+5. For round 2 and later, read the latest result file before planning.
+6. Write a plan file in one of the configured plan directories. The plan must either declare round 1 has no previous result or analyze the previous result file.
+7. Exit planning only when the gate accepts a plan containing all required items.
+8. Create and enter the planned worktree or branch.
+9. Implement only the planned round.
+10. Verify with real commands and capture outcomes.
+11. Write a result artifact with a `Next Round Handoff` section.
+12. Commit the round.
+13. Merge back according to project rules.
+14. Clean up the worktree or branch.
+15. Reset gate state or start the next round intentionally.
 
 ## Troubleshooting
 

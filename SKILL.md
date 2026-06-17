@@ -5,7 +5,7 @@ description: Run a gate-enforced iterative improvement loop for a project, modul
 
 # Iterative Improve
 
-Run a controlled loop: **discover rules → activate gate → plan → implement → verify → review → write result → merge/cleanup → choose next round**.
+Run a controlled loop: **discover rules → activate gate → analyze prior result → plan → implement → verify → review → write result → merge/cleanup → choose next round**.
 
 This skill is generic. Do not hard-code one repository, metric, tool, branch name, directory layout, or Claude/Codex feature. Discover project rules from local files and enforce the required gate before any mutating iterative-improvement work.
 
@@ -63,6 +63,8 @@ Use real Plan Mode when available. If Plan Mode tools are unavailable, use the g
 Planning rules:
 
 - Read relevant code/config/results before designing changes.
+- For round 2 and later, read the previous round's result file before writing the next plan.
+- The next plan must explicitly analyze the previous result: what passed, what failed, what was kept/discarded, and why the next bottleneck follows from that evidence.
 - Do not edit code, run migrations, run long experiments, or commit during planning.
 - Plan only the next round. Do not pre-plan all future rounds.
 - Choose one primary bottleneck for the round.
@@ -71,7 +73,7 @@ Planning rules:
 Each plan file must include:
 
 - Goal and success criteria.
-- Current state and previous-round findings, if any.
+- Current state and previous-round findings. For round 1, state that there is no previous result. For round 2 and later, include a `Previous Result Analysis` section with the previous result file path.
 - Scope and explicit non-goals.
 - Implementation approach with affected subsystems.
 - Verification commands and acceptance criteria.
@@ -140,6 +142,7 @@ Include:
 - Review findings by severity.
 - Keep/discard decision for the round.
 - The single biggest bottleneck for the next round.
+- A `Next Round Handoff` section that names the evidence-backed next bottleneck, recommends the next plan focus, and lists any stop conditions.
 
 Do not report final success from memory; read the actual files/logs/results.
 
@@ -150,6 +153,7 @@ Continue when:
 - Max rounds has not been reached.
 - Verification passed or produced actionable findings.
 - The next bottleneck is clear and in scope.
+- The next plan can cite and analyze the latest result file.
 
 Stop when:
 
@@ -157,6 +161,7 @@ Stop when:
 - Two consecutive rounds produce no substantive findings.
 - Further work needs user judgment, credentials, new data, budget, or external access.
 - The latest result shows the approach is not worth continuing.
+- The previous result file is missing, unreadable, or too ambiguous to justify the next round.
 - The user exits/cancels the gate.
 
 When stopping, summarize the loop with links/paths to plans, results, commits, and remaining risks.

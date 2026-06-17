@@ -55,6 +55,7 @@ Chinese prompts also work:
 Trigger prompt
   -> read project rules
   -> activate required gate
+  -> analyze previous result, except round 1
   -> plan one round
   -> approve/exit planning
   -> create isolated worktree or branch
@@ -81,6 +82,7 @@ The gate blocks:
 - Editing in the main worktree after approval.
 - Unsafe merge or cleanup commands outside allowed optimization branch/worktree patterns.
 - Exiting Plan Mode when the plan is missing key items such as goal, round, worktree or branch isolation, verification, concrete result file path, commit, merge, and cleanup.
+- Exiting Plan Mode for round 2+ when the plan does not analyze and cite the previous result file.
 
 The default public naming policy uses `improve/*` branches and `<repo>-improve-*` worktrees, while preserving compatibility with older `opt/*` branches and `<repo>-opt-*` worktrees.
 

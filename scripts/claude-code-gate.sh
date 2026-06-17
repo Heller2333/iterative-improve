@@ -253,9 +253,34 @@ plan_has_result_path() {
   return 1
 }
 
+result_path_count() {
+  local plan="$1"
+  local dir escaped count total
+  total=0
+
+  for dir in $result_dirs; do
+    escaped=$(regex_escape "$dir")
+    count=$(printf '%s' "$plan" | grep -Eo "(^|[^[:alnum:]_./-])$escaped/[^[:space:]'\"\`)]+\.md([^[:alnum:]_.-]|$)" | wc -l | tr -d ' ')
+    total=$((total + count))
+  done
+
+  printf '%s\n' "$total"
+}
+
+plan_is_first_round() {
+  local plan="$1"
+  printf '%s' "$plan" | grep -Eiq '(^|[^[:alnum:]])R0?1([^[:alnum:]]|$)|round[[:space:]:#-]*0?1([^0-9]|$)|iteration[[:space:]:#-]*0?1([^0-9]|$)|first[[:space:]-]*round|第一轮|第[[:space:]]*1[[:space:]]*轮|首轮|no previous result|无上一轮|没有上一轮'
+}
+
+plan_has_previous_result_analysis() {
+  local plan="$1"
+  printf '%s' "$plan" | grep -Eiq 'previous result analysis|prior result analysis|previous[[:space:]-]*round|prior[[:space:]-]*round|last[[:space:]-]*result|latest[[:space:]-]*result|上一轮结果分析|上一轮|前一轮|上轮|上一轮结果|前一轮结果'
+}
+
 plan_missing_reason() {
   local plan="$1"
   local missing=()
+  local result_paths
 
   printf '%s' "$plan" | grep -Eiq 'goal|objective|success criteria|目标|主题' || missing+=("goal/objective")
   printf '%s' "$plan" | grep -Eiq 'round|iteration|轮次|R[0-9]+' || missing+=("round")
@@ -263,6 +288,11 @@ plan_missing_reason() {
   printf '%s' "$plan" | grep -Eiq 'verify|test|validation|验证|测试' || missing+=("verification")
   printf '%s' "$plan" | grep -Eiq 'result|report|结果|报告' || missing+=("result artifact")
   plan_has_result_path "$plan" || missing+=("concrete result file path")
+  if ! plan_is_first_round "$plan"; then
+    plan_has_previous_result_analysis "$plan" || missing+=("previous result analysis")
+    result_paths=$(result_path_count "$plan")
+    [ "$result_paths" -ge 2 ] || missing+=("previous result file path")
+  fi
   printf '%s' "$plan" | grep -Eiq 'commit|提交' || missing+=("commit")
   printf '%s' "$plan" | grep -Eiq 'merge|合并' || missing+=("merge")
   printf '%s' "$plan" | grep -Eiq 'cleanup|worktree remove|清理|删除 worktree' || missing+=("cleanup")
@@ -287,7 +317,7 @@ if [ "$event" = "UserPromptSubmit" ]; then
 
   if printf '%s' "$prompt" | grep -Eiq "$trigger_regex"; then
     write_state "loop_pending_plan" "$session_id" "$prompt"
-    user_context "iterative-improve gate" "An iterative-improve request was detected. Before mutating files, enter/perform a read-only planning phase, inspect local project rules, write a plan file, and pass ExitPlanMode if available. The plan must include goal, round, worktree/branch isolation, verification, a concrete result file path under a configured result directory, commit, merge, and cleanup."
+    user_context "iterative-improve gate" "An iterative-improve request was detected. Before mutating files, enter/perform a read-only planning phase, inspect local project rules, write a plan file, and pass ExitPlanMode if available. The plan must include goal, round, worktree/branch isolation, verification, a concrete result file path under a configured result directory, commit, merge, and cleanup. For round 2 and later, the plan must analyze the previous result file and cite its path."
   fi
 
   exit 0

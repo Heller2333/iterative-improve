@@ -49,10 +49,22 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 After that, start a loop with:
 
 ```text
-Use /iterative-improve to improve the report generation pipeline.
+/iterative-improve improve the report generation pipeline
 Goal: reduce noisy output and improve verification.
 Max rounds: 3.
 ```
+
+The default gate activates only when a prompt contains a dedicated command line matching one of these forms:
+
+- `/iterative-improve`
+- `/iterative-improve <topic>`
+- `循环优化`
+- `循环优化: <topic>`
+- `循环优化：<topic>`
+- `iterative improvement`
+- `iterative improvement: <topic>`
+
+The check is line-based. Repository URLs, install instructions, README quotes, and ordinary mentions of `iterative-improve` do not activate the gate.
 
 ## How It Works
 
@@ -89,6 +101,8 @@ The gate blocks:
 - Unsafe merge or cleanup commands outside allowed optimization branch/worktree patterns.
 - Exiting Plan Mode when the plan is missing key items such as goal, round, worktree or branch isolation, verification, concrete result file path, commit, merge, and cleanup.
 - Exiting Plan Mode for round 2+ when the plan does not analyze and cite the previous result file.
+
+The gate does not activate just because a prompt mentions the repository or contains `https://github.com/Heller2333/iterative-improve`. Activation requires one of the dedicated command lines above.
 
 The default public naming policy uses `improve/*` branches and `<repo>-improve-*` worktrees, while preserving compatibility with older `opt/*` branches and `<repo>-opt-*` worktrees.
 

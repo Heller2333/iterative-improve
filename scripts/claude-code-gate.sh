@@ -22,7 +22,7 @@ result_dirs="${ITERATIVE_IMPROVE_RESULT_DIRS:-results .agents/results reports/re
 worktree_prefix="${ITERATIVE_IMPROVE_WORKTREE_PREFIX:-$repo_name-improve-}"
 worktree_prefixes="${ITERATIVE_IMPROVE_WORKTREE_PREFIXES:-$worktree_prefix $repo_name-opt-}"
 branch_regex="${ITERATIVE_IMPROVE_BRANCH_REGEX:-improve/[[:alnum:]_./-]+|iter/[[:alnum:]_./-]+|feature/improve[-/][[:alnum:]_./-]+|codex/improve[-/][[:alnum:]_./-]+|opt/[[:alnum:]_./-]+|feature/opt[-/][[:alnum:]_./-]+|codex/opt[-/][[:alnum:]_./-]+}"
-trigger_regex="${ITERATIVE_IMPROVE_TRIGGER_REGEX:-/iterative-improve|开始循环优化|按[[:space:]]*反馈优化|按[[:space:]]*Codex[[:space:]]*反馈优化|循环优化|迭代优化|持续改进|automatic iterative improvement|iterative improvement loop}"
+trigger_regex="${ITERATIVE_IMPROVE_TRIGGER_REGEX:-^(/iterative-improve([[:space:]].+)?)$|^(循环优化([:：][[:space:]]*.+)?)$|^(iterative improvement([:][[:space:]]*.+)?)$}"
 reset_regex="${ITERATIVE_IMPROVE_RESET_REGEX:-退出[[:space:]]*(gate|Gate|循环优化|迭代优化)|关闭[[:space:]]*(gate|Gate|循环优化|迭代优化)|取消循环优化|停止循环优化|重置[[:space:]]*(gate|Gate|循环优化)|reset[[:space:]]+(gate|iterative[[:space:]]+improve|optimization[[:space:]]+gate)}"
 
 first_word() {
@@ -119,6 +119,31 @@ user_context() {
       additionalContext: $context
     }
   }'
+}
+
+trim_line() {
+  printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+line_matches_trigger() {
+  local line
+  line=$(trim_line "$1")
+  [ -n "$line" ] && printf '%s\n' "$line" | grep -Eiq "$trigger_regex"
+}
+
+prompt_has_trigger() {
+  local prompt="$1"
+  local line
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    if line_matches_trigger "$line"; then
+      return 0
+    fi
+  done <<EOF
+$prompt
+EOF
+
+  return 1
 }
 
 is_active() {
@@ -380,7 +405,7 @@ if [ "$event" = "UserPromptSubmit" ]; then
     exit 0
   fi
 
-  if printf '%s' "$prompt" | grep -Eiq "$trigger_regex"; then
+  if prompt_has_trigger "$prompt"; then
     ensure_artifact_dirs
     write_state "loop_pending_plan" "$session_id" "$prompt"
     user_context "iterative-improve gate" "An iterative-improve request was detected. The gate has ensured the primary artifact directories exist: $primary_plan_dir/ and $primary_result_dir/. Before mutating files, enter/perform a read-only planning phase, inspect local project rules, write a Markdown plan file under $primary_plan_dir/, and pass ExitPlanMode if available. Do not use the UI task plan as the gate plan. The plan must include goal, round, worktree/branch isolation, verification, one concrete future result file path under $primary_result_dir/, commit, merge, and cleanup. For round 2 and later, the plan must analyze the previous result file and cite its path."

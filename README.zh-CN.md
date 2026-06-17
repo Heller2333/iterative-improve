@@ -49,10 +49,22 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 之后可以这样启动循环：
 
 ```text
-使用 /iterative-improve 对数据处理模块做循环优化。
+/iterative-improve 对数据处理模块做循环优化
 目标：提升稳定性和可验证性。
 最多 3 轮。
 ```
+
+默认 gate 只会在提示中出现下面这些独立命令行时激活：
+
+- `/iterative-improve`
+- `/iterative-improve <topic>`
+- `循环优化`
+- `循环优化: <topic>`
+- `循环优化：<topic>`
+- `iterative improvement`
+- `iterative improvement: <topic>`
+
+匹配按“逐行”进行。仓库 URL、安装说明、README 引文，以及普通语句里提到 `iterative-improve` 都不会激活 gate。
 
 ## 工作方式
 
@@ -89,6 +101,8 @@ gate 会阻断：
 - 在非允许的优化分支或 worktree 模式下执行 merge/cleanup。
 - 计划缺少目标、轮次、worktree 或分支隔离、验证、具体结果文件路径、提交、合并、清理等关键项时退出 Plan Mode。
 - 第 2 轮及以后，如果计划没有分析并引用上一轮 result 文件，则阻止退出 Plan Mode。
+
+如果提示里只是提到仓库，或者包含 `https://github.com/Heller2333/iterative-improve` 这样的 URL，gate 不会激活。只有上面列出的独立命令行才会触发。
 
 公开默认命名策略使用 `improve/*` 分支和 `<repo>-improve-*` worktree，同时兼容旧的 `opt/*` 分支和 `<repo>-opt-*` worktree。
 

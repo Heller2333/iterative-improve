@@ -142,8 +142,20 @@ Set these in the hook command or the shell environment when the project needs di
 | `ITERATIVE_IMPROVE_WORKTREE_PREFIX` | `<repo-name>-improve-` | Primary worktree path prefix |
 | `ITERATIVE_IMPROVE_WORKTREE_PREFIXES` | `<repo-name>-improve- <repo-name>-opt-` | Allowed cleanup worktree path prefixes |
 | `ITERATIVE_IMPROVE_BRANCH_REGEX` | `improve/*`, `iter/*`, `feature/improve-*`, `codex/improve-*`, plus `opt/*` compatibility patterns | Allowed iterative-improvement branch names |
-| `ITERATIVE_IMPROVE_TRIGGER_REGEX` | English and Chinese iterative-improve trigger phrases | Prompts that activate the gate |
+| `ITERATIVE_IMPROVE_TRIGGER_REGEX` | Strict line-based command regex for `/iterative-improve`, `循环优化`, and `iterative improvement` | Prompts that activate the gate |
 | `ITERATIVE_IMPROVE_RESET_REGEX` | English and Chinese reset phrases | Prompts that reset the gate |
+
+Default trigger behavior is intentionally narrow. The gate activates only when at least one trimmed prompt line matches one of these command forms:
+
+- `/iterative-improve`
+- `/iterative-improve <topic>`
+- `循环优化`
+- `循环优化: <topic>`
+- `循环优化：<topic>`
+- `iterative improvement`
+- `iterative improvement: <topic>`
+
+Do not treat repository URLs, installation prompts, documentation quotes, or ordinary mentions of `iterative-improve` as activation signals.
 
 Example hook command with a custom plan directory:
 

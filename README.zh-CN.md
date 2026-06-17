@@ -173,8 +173,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 固定使用某个 release 或分支：
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.0 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.0/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.1 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.1/install.sh | bash
 ```
 
 ## 关键文件

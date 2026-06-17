@@ -80,8 +80,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 Pin a release, branch, or commit:
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.0 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.0/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.1 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.1/install.sh | bash
 ```
 
 Do not add automatic silent updates. The gate changes execution behavior, so updates must be explicit.
@@ -170,6 +170,8 @@ Reset the gate:
 ```bash
 bash .claude/hooks/iterative-improve-gate.sh --reset
 ```
+
+`--reset` may be run from the main worktree or any linked worktree. The hook clears gate state across the detected Git worktree group.
 
 Manual reset fallback:
 

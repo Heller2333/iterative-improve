@@ -173,8 +173,8 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 Pin a specific release or branch:
 
 ```bash
-ITERATIVE_IMPROVE_REF=v0.3.0 \
-curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.0/install.sh | bash
+ITERATIVE_IMPROVE_REF=v0.3.1 \
+curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/v0.3.1/install.sh | bash
 ```
 
 ## Key Files

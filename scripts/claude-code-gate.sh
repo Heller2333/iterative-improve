@@ -25,9 +25,43 @@ branch_regex="${ITERATIVE_IMPROVE_BRANCH_REGEX:-improve/[[:alnum:]_./-]+|iter/[[
 trigger_regex="${ITERATIVE_IMPROVE_TRIGGER_REGEX:-/iterative-improve|开始循环优化|按[[:space:]]*反馈优化|按[[:space:]]*Codex[[:space:]]*反馈优化|循环优化|迭代优化|持续改进|automatic iterative improvement|iterative improvement loop}"
 reset_regex="${ITERATIVE_IMPROVE_RESET_REGEX:-退出[[:space:]]*(gate|Gate|循环优化|迭代优化)|关闭[[:space:]]*(gate|Gate|循环优化|迭代优化)|取消循环优化|停止循环优化|重置[[:space:]]*(gate|Gate|循环优化)|reset[[:space:]]+(gate|iterative[[:space:]]+improve|optimization[[:space:]]+gate)}"
 
+state_dir_for_root() {
+  local root="$1"
+  if [ -n "${ITERATIVE_IMPROVE_STATE_DIR:-}" ]; then
+    printf '%s\n' "$ITERATIVE_IMPROVE_STATE_DIR"
+  else
+    printf '%s\n' "$root/.scratch/agent-state"
+  fi
+}
+
+reset_state_dir() {
+  local dir="$1"
+  local scratch_root
+  rm -f "$dir/iterative-improve-gate.json" "$dir/last-approved-plan.md" "$dir/iterative-improve-gate.json.tmp"
+  rmdir "$dir" 2>/dev/null || true
+  scratch_root="$(dirname "$dir")"
+  [ "$(basename "$scratch_root")" = ".scratch" ] && rmdir "$scratch_root" 2>/dev/null || true
+}
+
 reset_state() {
-  rm -f "$state_file" "$last_plan_file" "$state_file.tmp"
-  rmdir "$state_dir" "$project_root/.scratch" 2>/dev/null || true
+  local roots=()
+  local root dir current_root worktree_root
+
+  roots+=("$project_root")
+
+  current_root=$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null || true)
+  if [ -n "$current_root" ]; then
+    roots+=("$current_root")
+  fi
+
+  while IFS= read -r worktree_root; do
+    [ -n "$worktree_root" ] && roots+=("$worktree_root")
+  done < <(git -C "${current_root:-$project_root}" worktree list --porcelain 2>/dev/null | awk '$1 == "worktree" {print $2}')
+
+  for root in "${roots[@]}"; do
+    dir=$(state_dir_for_root "$root")
+    reset_state_dir "$dir"
+  done
 }
 
 if [ "${1:-}" = "--reset" ]; then

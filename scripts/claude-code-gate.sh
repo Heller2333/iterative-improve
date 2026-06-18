@@ -13,8 +13,10 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 project_root="$(cd "$script_dir/../.." && pwd)"
 
 state_dir="${ITERATIVE_IMPROVE_STATE_DIR:-$project_root/.scratch/agent-state}"
-state_file="$state_dir/iterative-improve-gate.json"
-last_plan_file="$state_dir/last-approved-plan.md"
+state_file_prefix="iterative-improve-gate"
+last_plan_prefix="last-approved-plan"
+state_file=""
+last_plan_file=""
 
 repo_name="$(basename "$project_root")"
 plan_dirs="${ITERATIVE_IMPROVE_PLAN_DIRS:-plans .agents/plans reports/plans docs/plans code/reports/plans}"
@@ -59,7 +61,7 @@ state_dir_for_root() {
 reset_state_dir() {
   local dir="$1"
   local scratch_root
-  rm -f "$dir/iterative-improve-gate.json" "$dir/last-approved-plan.md" "$dir/iterative-improve-gate.json.tmp"
+  rm -f "$dir"/"$state_file_prefix"*.json "$dir"/"$state_file_prefix"*.json.tmp "$dir"/"$last_plan_prefix"*.md
   rmdir "$dir" 2>/dev/null || true
   scratch_root="$(dirname "$dir")"
   [ "$(basename "$scratch_root")" = ".scratch" ] && rmdir "$scratch_root" 2>/dev/null || true
@@ -97,6 +99,7 @@ input=$(cat)
 event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty' 2>/dev/null)
 tool_name=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 
 deny_pretool() {
   local reason="$1"
@@ -124,6 +127,46 @@ user_context() {
 trim_line() {
   printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
+
+session_file_key() {
+  local raw="$1"
+
+  if [ -z "$raw" ]; then
+    printf '\n'
+    return 0
+  fi
+
+  printf '%s' "$raw" | tr -c '[:alnum:]._-' '_'
+}
+
+state_file_for_session() {
+  local dir="$1"
+  local sid="$2"
+  local key
+  key=$(session_file_key "$sid")
+
+  if [ -n "$key" ]; then
+    printf '%s/%s-%s.json\n' "$dir" "$state_file_prefix" "$key"
+  else
+    printf '%s/%s.json\n' "$dir" "$state_file_prefix"
+  fi
+}
+
+last_plan_file_for_session() {
+  local dir="$1"
+  local sid="$2"
+  local key
+  key=$(session_file_key "$sid")
+
+  if [ -n "$key" ]; then
+    printf '%s/%s-%s.md\n' "$dir" "$last_plan_prefix" "$key"
+  else
+    printf '%s/%s.md\n' "$dir" "$last_plan_prefix"
+  fi
+}
+
+state_file=$(state_file_for_session "$state_dir" "$session_id")
+last_plan_file=$(last_plan_file_for_session "$state_dir" "$session_id")
 
 line_matches_trigger() {
   local line

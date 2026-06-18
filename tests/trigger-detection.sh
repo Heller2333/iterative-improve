@@ -7,6 +7,10 @@ SOURCE_HOOK="$ROOT/scripts/claude-code-gate.sh"
 TMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 
+contains_deny() {
+  printf '%s' "$1" | grep -Eq '"permissionDecision"[[:space:]]*:[[:space:]]*"deny"'
+}
+
 make_project() {
   local name="$1"
   local dir="$TMP_ROOT/$name"
@@ -19,17 +23,37 @@ make_project() {
 run_prompt() {
   local dir="$1"
   local prompt="$2"
+  local session_id="${3:-test-session}"
   local payload
   payload=$(jq -n \
     --arg prompt "$prompt" \
-    --arg session_id "test-session" \
+    --arg session_id "$session_id" \
     '{hook_event_name: "UserPromptSubmit", prompt: $prompt, session_id: $session_id}')
   printf '%s' "$payload" | "$dir/.claude/hooks/iterative-improve-gate.sh" >/dev/null
 }
 
 state_exists() {
   local dir="$1"
-  [ -f "$dir/.scratch/agent-state/iterative-improve-gate.json" ]
+  [ -d "$dir/.scratch/agent-state" ] && find "$dir/.scratch/agent-state" -maxdepth 1 -type f -name 'iterative-improve-gate*.json' | grep -q .
+}
+
+run_pretool_write() {
+  local dir="$1"
+  local file_path="$2"
+  local session_id="$3"
+  local payload
+  payload=$(jq -n \
+    --arg cwd "$dir" \
+    --arg file_path "$file_path" \
+    --arg session_id "$session_id" \
+    '{
+      hook_event_name: "PreToolUse",
+      tool_name: "Write",
+      cwd: $cwd,
+      session_id: $session_id,
+      tool_input: {file_path: $file_path}
+    }')
+  printf '%s' "$payload" | "$dir/.claude/hooks/iterative-improve-gate.sh"
 }
 
 assert_triggered() {
@@ -67,5 +91,27 @@ assert_not_triggered "Install https://github.com/Heller2333/iterative-improve in
 assert_not_triggered "Please review iterative-improve before we decide whether to install it."
 assert_not_triggered "The README shows /iterative-improve as an example command."
 assert_not_triggered "https://github.com/Heller2333/iterative-improve"
+
+session_dir=$(make_project "session-isolation")
+run_prompt "$session_dir" "/iterative-improve improve reports" "session-a"
+
+other_session_output=$(run_pretool_write "$session_dir" "results/from-other-session.md" "session-b")
+if contains_deny "$other_session_output"; then
+  echo "Expected a different session to bypass the active gate, but it was denied."
+  exit 1
+fi
+
+same_session_output=$(run_pretool_write "$session_dir" "results/from-same-session.md" "session-a")
+if ! contains_deny "$same_session_output"; then
+  echo "Expected the triggering session to remain gated before plan approval, but it was allowed."
+  exit 1
+fi
+
+run_prompt "$session_dir" "/iterative-improve improve ingestion" "session-b"
+same_session_output_after_second_activation=$(run_pretool_write "$session_dir" "results/from-same-session-after-second-activation.md" "session-a")
+if ! contains_deny "$same_session_output_after_second_activation"; then
+  echo "Expected the first session to stay gated after a second session activated the gate, but it was allowed."
+  exit 1
+fi
 
 echo "trigger detection cases passed"

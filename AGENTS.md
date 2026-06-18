@@ -168,14 +168,14 @@ Example hook command with a custom plan directory:
 
 ## Gate State
 
-The hook writes temporary state to:
+The hook writes temporary state to session-scoped files such as:
 
 ```text
-.scratch/agent-state/iterative-improve-gate.json
-.scratch/agent-state/last-approved-plan.md
+.scratch/agent-state/iterative-improve-gate-<session-id>.json
+.scratch/agent-state/last-approved-plan-<session-id>.md
 ```
 
-These files are local workflow state. They should normally be gitignored by the target project.
+If a session id is unavailable, the hook falls back to the legacy unsuffixed filenames. These files are local workflow state and should normally be gitignored by the target project.
 
 The installer writes version metadata to:
 
@@ -198,7 +198,7 @@ bash .claude/hooks/iterative-improve-gate.sh --reset
 Manual reset fallback:
 
 ```bash
-rm -f .scratch/agent-state/iterative-improve-gate.json .scratch/agent-state/last-approved-plan.md
+rm -f .scratch/agent-state/iterative-improve-gate*.json .scratch/agent-state/last-approved-plan*.md
 ```
 
 ## Plan Requirements

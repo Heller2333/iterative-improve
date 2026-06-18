@@ -86,6 +86,7 @@ curl -fsSL https://raw.githubusercontent.com/Heller2333/iterative-improve/main/i
 - `SKILL.md` 教 Agent 按循环优化流程工作。
 - `scripts/claude-code-gate.sh` 是这个流程在 Claude Code 中必需的 gate hook。
 - gate 的临时状态保存在目标项目的 `.scratch/agent-state/` 下。
+- gate 状态按 session 隔离，因此同一项目中的一个循环不会阻塞其他无关会话。
 - gate 默认使用 `plans/` 写计划文件，使用 `results/` 写结果文件。installer 会创建这两个目录。
 - gate 是通用脚本，可通过环境变量配置；项目特定规则应写在目标项目自己的说明文件中。
 

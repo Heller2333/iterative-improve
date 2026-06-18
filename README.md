@@ -86,6 +86,7 @@ Trigger prompt
 - `SKILL.md` teaches the agent the iterative workflow.
 - `scripts/claude-code-gate.sh` is the required Claude Code gate hook for this workflow.
 - The gate stores temporary state under `.scratch/agent-state/` in the target project.
+- Gate state is session-scoped, so one active iterative-improve loop does not block unrelated sessions in the same project.
 - The gate uses `plans/` for plan files and `results/` for result files by default. The installer creates both directories.
 - The gate is generic and configurable with environment variables; project-specific policy should live in the target project's own instructions.
 

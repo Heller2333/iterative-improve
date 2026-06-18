@@ -1,6 +1,6 @@
 ---
 name: iterative-improve
-description: Run a gate-enforced iterative improvement loop for a project, module, strategy, report pipeline, or product workflow. Use when the user says "/iterative-improve", "迭代优化", "循环优化", "持续改进", "自动循环改进", "按反馈优化", or asks an agent to repeatedly plan, implement, verify, review, and continue across rounds while obeying a mandatory gate, Plan Mode, worktrees or branch isolation, commits, and result artifacts.
+description: Run a gate-enforced iterative improvement loop for a project, module, strategy, report pipeline, or product workflow. Use when the user gives an explicit command such as "/iterative-improve", "循环优化", or "iterative improvement", or asks an agent to repeatedly plan, implement, verify, review, and continue across rounds while obeying a mandatory gate, Plan Mode, worktrees or branch isolation, commits, and result artifacts.
 ---
 
 # Iterative Improve
@@ -34,11 +34,16 @@ Before planning or mutating files:
 
 Do not replace the gate with prompt-only discipline. Prompt discipline can explain what to do, but it is not a gate.
 
-Common trigger phrases:
+Default trigger commands:
 
-- `开始循环优化：<topic>`
-- `按反馈优化：<topic>`
+- `/iterative-improve`
 - `/iterative-improve <topic>`
+- `循环优化`
+- `循环优化：<topic>`
+- `iterative improvement`
+- `iterative improvement: <topic>`
+
+The default gate is intentionally strict and line-based. Repository URLs, installation prompts, quoted docs, and ordinary mentions of `iterative-improve` do not activate it.
 
 When the gate is active:
 
@@ -52,7 +57,7 @@ If the gate cannot be activated, do not proceed with the loop. You may inspect f
 
 `PermissionRequest` auto-approve hooks for `ExitPlanMode` are optional companion tools, not part of this skill's required gate. Do not install, vendor, or recreate third-party auto-approve hooks as part of `/iterative-improve`.
 
-This skill's enforcement must come from the project gate, normally `UserPromptSubmit` and `PreToolUse`. If a separate auto-approve hook is already installed, treat UI messages such as `Allowed by PermissionRequest hook` as approval of Claude Code's dialog only; the iterative-improve plan is valid only if the gate did not deny `ExitPlanMode`.
+This skill's enforcement must come from the project gate, normally `UserPromptSubmit` and `PreToolUse`. Gate state should be session-scoped so one active loop does not block unrelated sessions in the same project. If a separate auto-approve hook is already installed, treat UI messages such as `Allowed by PermissionRequest hook` as approval of Claude Code's dialog only; the iterative-improve plan is valid only if the gate did not deny `ExitPlanMode`.
 
 ### Exiting A Gate
 

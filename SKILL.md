@@ -73,7 +73,18 @@ After exiting, state that the loop is canceled and stop iterative execution. Res
 
 Use real Plan Mode when available. If Plan Mode tools are unavailable, use the gate's read-only planning state; if no gate can enforce that state, stop before implementation.
 
-Planning rules:
+### Required Call Order (do not reorder)
+
+The gate and Plan Mode have a strict dependency. Follow this exact sequence:
+
+1. **Call `EnterPlanMode`** — this puts the session into plan mode and gives you a plan file path.
+2. **Read** relevant code/config/results. For round 2+, read the previous result file.
+3. **Write the plan file** to the path returned by `EnterPlanMode` (or to `plans/` by default). The gate only allows writes to plan-directory files while `state != "plan_approved"`.
+4. **Call `ExitPlanMode`** — the gate validates the plan content and transitions to `plan_approved`.
+
+Do NOT write any file before calling `EnterPlanMode`. The gate will deny the write, and you will be unable to enter plan mode afterward — a deadlock.
+
+### Planning Rules
 
 - Read relevant code/config/results before designing changes.
 - For round 2 and later, read the previous round's result file before writing the next plan.
@@ -122,6 +133,8 @@ For each round:
 4. Run the planned verification.
 5. Generate or inspect real output when output quality matters.
 6. Commit if the project workflow requires per-round commits.
+7. Write the result file (see §6).
+8. **Reset the gate for the next round** (see §6.5): `bash .claude/hooks/iterative-improve-gate.sh --next-round`
 
 Do not continue to the next round just because implementation finished. Verification and review are part of the round.
 
@@ -159,6 +172,22 @@ Include:
 - A `Next Round Handoff` section that names the evidence-backed next bottleneck, recommends the next plan focus, and lists any stop conditions.
 
 Do not report final success from memory; read the actual files/logs/results.
+
+## 6.5. Reset Gate Between Rounds
+
+**After writing the result file and committing, reset the gate state before starting the next round.** This is mandatory — without it, the gate stays at `plan_approved` and all subsequent rounds skip planning.
+
+Run this command:
+
+```bash
+bash .claude/hooks/iterative-improve-gate.sh --next-round
+```
+
+This transitions the gate state from `plan_approved` back to `loop_pending_plan`, which means:
+- The next round's code changes will be blocked until a new plan is approved
+- `EnterPlanMode` → `ExitPlanMode` must be called again for each round
+
+**Do not start the next round without running this command.** If the gate state is still `plan_approved`, the agent will skip planning and go straight to implementation, violating the iterative-improve contract.
 
 ## 7. Continue Or Stop
 

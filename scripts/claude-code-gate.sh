@@ -94,6 +94,19 @@ if [ "${1:-}" = "--reset" ]; then
   exit 0
 fi
 
+if [ "${1:-}" = "--next-round" ]; then
+  # 重置状态为 loop_pending_plan，强制下一轮进入 Plan Mode
+  # 保留 session_id 和 trigger_prompt，只重置 state
+  if [ -f "$state_file" ]; then
+    jq '.state = "loop_pending_plan" | del(.plan_file) | del(.plan_approved_at)' \
+      "$state_file" > "$state_file.tmp" && mv "$state_file.tmp" "$state_file"
+    echo "iterative-improve gate: next round — state reset to loop_pending_plan"
+  else
+    echo "iterative-improve gate: no active state to reset"
+  fi
+  exit 0
+fi
+
 input=$(cat)
 
 event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty' 2>/dev/null)
@@ -352,6 +365,9 @@ is_reset_command() {
 
   case "$cmd" in
     "bash .claude/hooks/iterative-improve-gate.sh --reset"|"./.claude/hooks/iterative-improve-gate.sh --reset"|"bash $script_path --reset"|"$script_path --reset")
+      return 0
+      ;;
+    "bash .claude/hooks/iterative-improve-gate.sh --next-round"|"./.claude/hooks/iterative-improve-gate.sh --next-round"|"bash $script_path --next-round"|"$script_path --next-round")
       return 0
       ;;
   esac
